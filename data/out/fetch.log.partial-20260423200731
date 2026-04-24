@@ -1,0 +1,42 @@
+[ok] (1/360) 丁谓
+[ok] (2/360) 丘崇
+[ok] (3/360) 严羽
+[ok] (4/360) 令狐楚
+[ok] (5/360) 令狐绹
+[ok] (6/360) 何大圭
+[ok] (7/360) 余靖
+[ok] (8/360) 倪称
+[ok] (9/360) 元稹
+[ok] (10/360) 元结
+[ok] (11/360) 冯京
+[ok] (12/360) 冯延巳
+[ok] (13/360) 刘一止
+[ok] (14/360) 刘克庄
+[ok] (15/360) 刘勉之
+[ok] (16/360) 刘子翚
+[ok] (17/360) 刘将孙
+[ok] (18/360) 刘得仁
+[ok] (19/360) 刘恕
+[ok] (20/360) 刘才邵
+[ok] (21/360) 刘敞
+Traceback (most recent call last):
+  File "/Users/sousekilyu/Documents/Github/poet-life-tang/scripts/fetch_poetlife.py", line 348, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/Users/sousekilyu/Documents/Github/poet-life-tang/scripts/fetch_poetlife.py", line 318, in main
+    payload = fetch_biography(client, q)
+  File "/Users/sousekilyu/Documents/Github/poet-life-tang/scripts/fetch_poetlife.py", line 119, in fetch_biography
+    return r.json()
+           ~~~~~~^^
+  File "/usr/local/lib/python3.14/site-packages/httpx/_models.py", line 832, in json
+    return jsonlib.loads(self.content, **kwargs)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/__init__.py", line 352, in loads
+    return _default_decoder.decode(s)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^
+  File "/usr/local/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 345, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+               ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/json/decoder.py", line 363, in raw_decode
+    raise JSONDecodeError("Expecting value", s, err.value) from None
+json.decoder.JSONDecodeError: Expecting value: line 1 column 1 (char 0)

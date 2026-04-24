@@ -1,0 +1,44 @@
+=== 李白 ===
+  life 701-762 birth_key=CN510700 death_key=CN320400
+  waypoints=186
+  first_wp 701-718 CN510700 江油（昌明） (出生地)
+  last_wp 762-762 CN320400 溧阳
+  needs_review=False
+=== 杜甫 ===
+  life 712-770 birth_key=CN410100 death_key=CN430400
+  waypoints=94
+  first_wp 712-713 CN410100 巩义（巩县） (出生地)
+  last_wp 770-770 CN430400 衡山
+  needs_review=False
+=== 李商隐 ===
+  life 812-858 birth_key=CN410700 death_key=CN410100
+  waypoints=81
+  first_wp 812-813 CN410700 获嘉 (出生地)
+  last_wp 858-858 CN410100 郑州
+  needs_review=False
+=== 王维 ===
+  life 700-761 birth_key=CN140700 death_key=CN610100
+  waypoints=45
+  first_wp 700-708 CN140700 祁县 (出生地)
+  last_wp 757-761 CN610100 西安
+  needs_review=False
+=== 白居易 ===
+  life 772-846 birth_key=CN410100 death_key=CN410300
+  waypoints=99
+  first_wp 772-772 CN410100 郑州（新郑） (出生地)
+  last_wp 835-846 CN410300 宜阳（寿安）
+  needs_review=False
+=== meta.stats ===
+{
+  "timeline_rows": 93279,
+  "tang_poets": 86,
+  "tang_poets_title_span": 86,
+  "tang_poets_waypoint_span": 0,
+  "skipped_no_year_signal": 0,
+  "skipped_no_tang_overlap": 270,
+  "skipped_no_waypoints": 0,
+  "title_span_without_birth_marker_row": 2,
+  "death_inferred_from_year": 3,
+  "death_fallback_last_wp": 83,
+  "death_missing": 0
+}

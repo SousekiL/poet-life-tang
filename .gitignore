@@ -1,0 +1,12 @@
+CHGIS/extracted/
+CHGIS/.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Dependencies / build output
+node_modules/
+output/
+
+# Large local media (root目录录屏/成片；如需入库请改用 Git LFS)
+*.mov

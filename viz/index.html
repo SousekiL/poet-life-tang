@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8" />
+  <script>
+    (function () {
+      try {
+        if (new URLSearchParams(location.search).get("video") === "1") {
+          document.documentElement.classList.add("viz-video-export");
+        }
+      } catch (e) {}
+    })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>唐宋诗人行迹（618–1279）</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #dce8f4;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    #bar {
+      flex-shrink: 0;
+      height: 120px;
+      padding: 8px 12px;
+      background: #f5f5f5;
+      color: #212121;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      align-items: center;
+    }
+    #vizWrap {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      min-height: 0;
+      min-width: 0;
+    }
+    #mapStage {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, #5b9bd4 0%, #8eb8e0 45%, #c5daf0 100%);
+    }
+    #map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 8px;
+    }
+    .leaflet-container {
+      background: #7eb3e5 !important;
+      border-radius: 8px;
+    }
+    #histHud {
+      position: absolute;
+      z-index: 1050;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(520px, 92vw);
+      max-width: min(520px, 92vw);
+      padding: 12px 18px;
+      background: rgba(255, 255, 255, 0.93);
+      border-radius: 10px;
+      border: 1px solid #cfd8dc;
+      font-size: 15px;
+      color: #607d8b;
+      line-height: 1.5;
+      pointer-events: none;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+      transition: opacity 0.35s ease;
+      display: grid;
+      grid-template-columns: 6.25rem minmax(0, 1fr);
+      column-gap: 16px;
+      align-items: start;
+      box-sizing: border-box;
+      text-align: left;
+      font-family: "Kaiti SC", "STKaiti", "KaiTi", serif;
+    }
+    #histHud .hist-year-chip {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 8px;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #eceff1, #cfd8dc);
+      border: 1px solid #b0bec5;
+      font-size: 22px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: #37474f;
+      line-height: 1.2;
+      text-align: center;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+    }
+    #histHud .hist-event-body {
+      min-width: 0;
+    }
+    #histHud .hist-event-body strong {
+      display: block;
+      font-size: 20px;
+      font-weight: 700;
+      color: #37474f;
+      margin-bottom: 4px;
+      letter-spacing: 0.02em;
+    }
+    #histHud .hist-event-body .hist-placeholder {
+      font-size: 14px;
+      color: #90a4ae;
+      font-weight: 500;
+    }
+    #histHud .hist-sub {
+      display: block;
+      font-size: 16px;
+      color: #78909c;
+      line-height: 1.45;
+      margin-top: 2px;
+    }
+    #mapOutroMist {
+      position: absolute;
+      z-index: 1080;
+      inset: 0;
+      border-radius: 8px;
+      pointer-events: none;
+      opacity: 0;
+      background: radial-gradient(
+        ellipse 115% 95% at 50% 38%,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(240, 247, 255, 0.35) 38%,
+        rgba(248, 250, 252, 0.72) 68%,
+        rgba(255, 255, 255, 0.88) 100%
+      );
+      backdrop-filter: blur(0px);
+      -webkit-backdrop-filter: blur(0px);
+    }
+    #mapOutroCover {
+      position: absolute;
+      z-index: 1100;
+      inset: 0;
+      border-radius: 8px;
+      pointer-events: none;
+      opacity: 0;
+      background: linear-gradient(
+        165deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.45) 42%,
+        rgba(253, 254, 255, 0.92) 100%
+      );
+      transition: none;
+    }
+    #outroCredits {
+      position: absolute;
+      z-index: 1120;
+      right: 18px;
+      bottom: 38px;
+      max-width: min(460px, 62vw);
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(250, 252, 255, 0.62);
+      border: 1px solid rgba(207, 216, 220, 0.85);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+      color: #607d8b;
+      font-size: 15px;
+      line-height: 1.5;
+      letter-spacing: 0.01em;
+      pointer-events: none;
+      opacity: 0;
+      white-space: pre-line;
+      font-family: "Kaiti SC", "STKaiti", "KaiTi", serif;
+    }
+    #introTitleCard {
+      position: absolute;
+      z-index: 1125;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      min-width: min(440px, 78vw);
+      max-width: 86vw;
+      text-align: center;
+      padding: 12px 18px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(207, 216, 220, 0.92);
+      box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
+      color: #37474f;
+      font-size: 34px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 0.42s ease;
+      font-family: "Kaiti SC", "STKaiti", "KaiTi", serif;
+    }
+    #introTitleCard.intro-title-card--gone {
+      opacity: 0;
+    }
+    #introCredits {
+      position: absolute;
+      z-index: 1124;
+      left: 50%;
+      top: calc(50% + 86px);
+      transform: translateX(-50%);
+      width: min(560px, 84vw);
+      text-align: center;
+      color: #607d8b;
+      font-size: 15px;
+      line-height: 1.6;
+      letter-spacing: 0.02em;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 0.42s ease;
+      white-space: pre-line;
+      font-family: "Kaiti SC", "STKaiti", "KaiTi", serif;
+      text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+    #introCredits.intro-credits--gone {
+      opacity: 0;
+    }
+    .leaflet-tooltip.city-lbl {
+      background: rgba(255, 255, 255, 0.94) !important;
+      border: none !important;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08) !important;
+      color: #90a4ae !important;
+      font-size: 11px !important;
+      font-weight: 500 !important;
+      padding: 4px 8px !important;
+    }
+    .leaflet-tooltip.city-lbl::before {
+      display: none !important;
+    }
+    .leaflet-tooltip.city-lbl.city-lbl--changan {
+      color: #78909c !important;
+      font-weight: 600 !important;
+    }
+    #markerDotGuide {
+      position: absolute;
+      z-index: 1048;
+      left: 12px;
+      bottom: 26px;
+      max-width: min(288px, 46vw);
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid #cfd8dc;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+      font-size: 16px;
+      line-height: 1.45;
+      color: #546e7a;
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 0.4s ease;
+      font-family: "Kaiti SC", "STKaiti", "KaiTi", system-ui, sans-serif;
+    }
+    #markerDotGuide.marker-dot-guide--gone {
+      opacity: 0;
+    }
+    #markerDotGuide .mdg-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    #markerDotGuide .mdg-row:first-child {
+      margin-top: 0;
+    }
+    #markerDotGuide .mdg-dot {
+      flex-shrink: 0;
+      width: 10px;
+      height: 10px;
+      margin-top: 3px;
+      border-radius: 50%;
+      border: 2px solid;
+      box-sizing: border-box;
+    }
+    #markerDotGuide .mdg-dot--birth {
+      border-color: #d32f2f;
+      background: #ff5252;
+      opacity: 0.9;
+    }
+    #markerDotGuide .mdg-dot--death {
+      border-color: #1565c0;
+      background: #2196f3;
+      opacity: 0.9;
+    }
+    #vipDockBirth,
+    #vipDockDeath {
+      position: absolute;
+      z-index: 1060;
+      right: 10px;
+      width: min(320px, 34vw);
+      pointer-events: none;
+      opacity: 1;
+      transition: opacity 0.45s ease;
+      font-family: "Kaiti SC", "STKaiti", "KaiTi", serif;
+      box-sizing: border-box;
+    }
+    #vipDockBirth {
+      top: 12%;
+      height: 34%;
+    }
+    #vipDockDeath {
+      top: 54%;
+      height: 34%;
+    }
+    .vip-dock-slot {
+      position: absolute;
+      right: 0;
+      width: 100%;
+      min-height: 56px;
+      transform: translateY(-50%);
+    }
+    .vip-dock-card {
+      min-width: 180px;
+      max-width: min(320px, 34vw);
+      padding: 8px 12px 8px 14px;
+      background: rgba(255, 255, 255, 0.97);
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+      filter: blur(2px);
+      transition:
+        opacity 0.45s ease,
+        transform 0.45s ease,
+        filter 0.5s ease;
+    }
+    .vip-dock-card.vip-dock-card--in {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      filter: blur(0);
+    }
+    .vip-dock-card.vip-dock-card--out {
+      opacity: 0;
+      transform: translateY(-6px) scale(0.97);
+      filter: blur(4px);
+    }
+    .vip-dock-card .vip-cap-name {
+      font-weight: 800;
+      font-size: 13px;
+      color: #263238;
+      margin-bottom: 3px;
+    }
+    .vip-dock-card .vip-cap-line {
+      font-weight: 500;
+      font-size: 12px;
+      color: #546e7a;
+      line-height: 1.45;
+    }
+    #bar label { display: flex; flex-direction: column; font-size: 11px; gap: 2px; }
+    #bar label .speed-eta {
+      font-size: 10px;
+      font-weight: 500;
+      color: #546e7a;
+      margin-top: 1px;
+      line-height: 1.25;
+      max-width: 148px;
+    }
+    #bar input[type="range"] { width: 140px; }
+    #yearLabel { font-size: 22px; font-weight: 700; min-width: 140px; color: #111; }
+    button {
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: none;
+      background: #c62828;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.secondary { background: #546e7a; color: #fff; }
+    .hint { font-size: 11px; color: #616161; max-width: 480px; line-height: 1.35; }
+
+    /** 竖屏视频导出：?video=1 — 无顶栏、9:16 画幅、弱化控件与叠加层 */
+    html.viz-video-export body {
+      align-items: center;
+      justify-content: center;
+    }
+    html.viz-video-export #bar {
+      position: fixed;
+      left: -8000px;
+      top: 0;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      opacity: 0;
+      pointer-events: none;
+    }
+    html.viz-video-export #vizWrap {
+      flex: 0 0 auto;
+      aspect-ratio: 9 / 16;
+      width: min(100vw, calc(100dvh * 9 / 16));
+      height: min(100dvh, calc(100vw * 16 / 9));
+      max-width: 100vw;
+      max-height: 100dvh;
+      min-height: 0;
+    }
+    html.viz-video-export #histHud,
+    html.viz-video-export #vipDockBirth,
+    html.viz-video-export #vipDockDeath,
+    html.viz-video-export #markerDotGuide,
+    html.viz-video-export #introTitleCard,
+    html.viz-video-export #introCredits,
+    html.viz-video-export #outroCredits {
+      display: none !important;
+    }
+    html.viz-video-export .leaflet-control-zoom {
+      display: none !important;
+    }
+    html.viz-video-export .leaflet-control-attribution {
+      font-size: 9px;
+      opacity: 0.55;
+      max-width: 92%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  </style>
+</head>
+<body>
+  <div id="bar">
+    <span id="yearLabel">618 年</span>
+    <button type="button" id="btnPlay">播放</button>
+    <button type="button" class="secondary" id="btnReset">重置</button>
+    <label>进度<input type="range" id="rngProgress" min="0" max="1000" value="0" /></label>
+    <label>年速<input type="range" id="rngSpeed" min="1" max="45" value="3" /><span id="speedEta" class="speed-eta" aria-live="polite"></span></label>
+    <label>强调<input type="range" id="rngEmphasis" min="5" max="200" value="115" /></label>
+    <label>可视诗人上限<input type="range" id="rngMaxPoets" min="20" max="200" value="120" /></label>
+    <label>出生错峰(帧)<input type="range" id="rngStagger" min="0" max="120" value="24" /></label>
+    <span class="hint"><strong>长安</strong>始终标注；名人出生在上带、卒年在下带<strong>右侧固定槽</strong>展示约 5.6 秒。播完有雾感渐隐收尾。</span>
+  </div>
+  <div id="vizWrap">
+    <div id="mapStage">
+      <div id="histHud" aria-live="polite"></div>
+      <div id="vipDockBirth" aria-label="名人出生"></div>
+      <div id="vipDockDeath" aria-label="名人卒年"></div>
+      <div id="markerDotGuide" role="status" aria-live="polite" hidden>
+        <div class="mdg-row">
+          <span class="mdg-dot mdg-dot--birth" aria-hidden="true"></span>
+          <span>红色点表示诗人在当地出生</span>
+        </div>
+        <div class="mdg-row">
+          <span class="mdg-dot mdg-dot--death" aria-hidden="true"></span>
+          <span>蓝色点表示在当地逝世</span>
+        </div>
+      </div>
+      <div id="introTitleCard" role="status" aria-live="polite" hidden>唐宋文人迁移轨迹编年地图</div>
+      <div id="introCredits" aria-hidden="true" hidden>视频制作：Liu Yuqing（微信公众号@一尺之棰）、ChatGPT
+数据来源：唐宋文学编年地图
+背景音乐：大唐无双·破阵</div>
+      <div id="map"></div>
+      <div id="mapOutroMist" aria-hidden="true"></div>
+      <div id="mapOutroCover" aria-hidden="true"></div>
+      <div id="outroCredits" aria-hidden="true">视频制作：Liu Yuqing（微信公众号@一尺之棰）、ChatGPT
+数据来源：唐宋文学编年地图
+背景音乐：大唐无双·破阵</div>
+    </div>
+  </div>
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script src="app.js"></script>
+</body>
+</html>

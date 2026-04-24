@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/poetlife-export.schema.json",
+  "title": "PoetLife export row",
+  "description": "Flattened timeline-ish rows from cnkgraph /Api/Biography; one row per parsed time segment inside a marker Detail, plus marker-level rows when no segments parsed.",
+  "type": "object",
+  "required": ["person_name", "source_request_uri", "record_kind"],
+  "properties": {
+    "person_name": {
+      "type": "string",
+      "description": "作家名（从 trace Title 或查询参数 author 提取，已去除 HTML）。"
+    },
+    "person_name_raw": {
+      "type": "string",
+      "description": "API 返回的 Title 原始字符串（可能含 HTML）。"
+    },
+    "source_request_uri": {
+      "type": "string",
+      "description": "本次拉取使用的 Biography 查询串，如 scope=&author=李白&beginYear=0&endYear=0"
+    },
+    "trace_title": {
+      "type": "string",
+      "description": "Traces[0].Title"
+    },
+    "record_kind": {
+      "type": "string",
+      "enum": ["timeline_entry", "marker_fallback", "trace_summary"],
+      "description": "timeline_entry：从 Marker.Detail 解析出的年/时段行；marker_fallback：无法解析时占位一条；trace_summary：整传 Summary/Detail。"
+    },
+    "sequence": {
+      "type": "integer",
+      "description": "同一人物内的序号（从 0 开始）。"
+    },
+    "time_label": {
+      "type": "string",
+      "description": "详情里链入的年份或年段展示文本，如 659年、660-675年。"
+    },
+    "time_view_query": {
+      "type": "string",
+      "description": "ViewDetail 内嵌查询串，如 scope=&author=&beginYear=659&endYear=659，可再次请求 API 细化。"
+    },
+    "place_title": {
+      "type": "string",
+      "description": "地图点名称，如 成都、射洪 (出生地)。"
+    },
+    "latitude": {
+      "type": "number"
+    },
+    "longitude": {
+      "type": "number"
+    },
+    "region_id": {
+      "type": "string",
+      "description": "Marker.RegionId，若有。"
+    },
+    "detail_text": {
+      "type": "string",
+      "description": "该时间条目的纯文本描述（已 strip HTML）。"
+    },
+    "marker_detail_html": {
+      "type": "string",
+      "description": "可选：保留整段 Marker.Detail 供离线解析。"
+    },
+    "trace_summary_html": {
+      "type": "string"
+    },
+    "trace_detail_html": {
+      "type": "string"
+    }
+  }
+}

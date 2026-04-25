@@ -1,6 +1,7 @@
 CHGIS/extracted/
 CHGIS/preview/
 CHGIS/.venv/
+.venv-hartwell/
 __pycache__/
 *.pyc
 .DS_Store

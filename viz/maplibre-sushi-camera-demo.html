@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>李清照行迹 · MapLibre 镜头 + 地形 Demo（约 65s+ 循环）</title>
+  <title>苏轼行迹 · MapLibre 镜头 + 地形 Demo（约 65s+ 循环）</title>
   <link
     rel="stylesheet"
     href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
@@ -29,7 +29,7 @@
       color: #263238;
       box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
     }
-    #hud strong { color: #880e4f; }
+    #hud strong { color: #0d47a1; }
     #hud code { font-size: 11px; background: #eceff1; padding: 2px 6px; border-radius: 4px; }
     a { color: #1565c0; }
     /* 地名：HTML Marker 才能稳定用系统楷体（GL symbol 受字形服务限制） */
@@ -38,7 +38,7 @@
       font-size: 19px;
       font-weight: 700;
       line-height: 1.2;
-      color: #4a148c;
+      color: #01579b;
       text-shadow:
         0 0 6px #fff,
         0 0 10px #fff,
@@ -105,9 +105,9 @@
       max-height: min(38vh, 320px);
       padding: 12px 16px 14px;
       background: rgba(255, 252, 254, 0.94);
-      border: 1px solid rgba(244, 143, 177, 0.5);
+      border: 1px solid rgba(66, 165, 245, 0.55);
       border-radius: 12px;
-      box-shadow: 0 8px 28px rgba(74, 20, 120, 0.15);
+      box-shadow: 0 8px 28px rgba(13, 71, 161, 0.12);
       font-family: "Kaiti SC", "STKaiti", "KaiTi", "Songti SC", serif;
       opacity: 0;
       pointer-events: none;
@@ -122,7 +122,7 @@
     #deed-pop .deed-place {
       font-size: 18px;
       font-weight: 800;
-      color: #880e4f;
+      color: #0d47a1;
       margin-bottom: 4px;
     }
     #deed-pop .deed-year {
@@ -147,7 +147,7 @@
       max-width: min(420px, 84vw);
       padding: 10px 12px;
       border-radius: 10px;
-      border: 1px solid rgba(176, 190, 197, 0.52);
+      border: 1px solid rgba(144, 164, 174, 0.45);
       background: rgba(255, 255, 255, 0.84);
       box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
       color: #263238;
@@ -157,7 +157,7 @@
     #timeline-hud .timeline-year {
       font-size: 17px;
       font-weight: 800;
-      color: #880e4f;
+      color: #0d47a1;
       margin-bottom: 4px;
       line-height: 1.2;
     }
@@ -169,10 +169,9 @@
   </style>
 </head>
 <body>
-
   <div id="timeline-hud" aria-live="polite" aria-label="年份与大事记">
-    <div class="timeline-year">公元 1084 年</div>
-    <div class="timeline-event">词人南渡前的汴京旧梦仍在酝酿。</div>
+    <div class="timeline-year">公元 1036 年</div>
+    <div class="timeline-event">苏轼生于眉山。</div>
   </div>
   <div id="map" aria-label="地图"></div>
   <div id="deed-pop" aria-live="polite" aria-label="事迹与年份"></div>
@@ -180,69 +179,89 @@
   <script>
 (function () {
   /**
-   * 与 trajectories.json 李清照路点一致；detail 为库中 detail_text（可多条合并）
+   * 与 trajectories.json 苏轼路点一致；detail 为库中 detail_text 节选
    */
   const WAYPOINTS = [
     {
-      lng: 117.532344,
-      lat: 36.685415,
-      label: "章丘 (出生地)",
-      detail: "父格非官郓州教授。",
+      lng: 103.85507,
+      lat: 30.081369,
+      label: "眉山 (出生地)",
+      detail: "十二月十九日（公历1037年1月8日）卯时，苏轼生于眉山县纱縠行。",
     },
     {
       lng: 114.313904,
       lat: 34.802941,
       label: "开封",
-      detail: "父格非官太学正，随父居京师。",
+      detail: "五月，苏洵、苏轼、苏辙父子三人抵京师。",
     },
     {
-      lng: 118.440962,
-      lat: 36.778223,
-      label: "益都",
-      detail: "，24岁\n，25-38岁",
-    },
-    {
-      lng: 118.802891,
-      lat: 32.064735,
-      label: "南京",
-      detail:
-        "春，抵达江宁。有词咏旅邸后庭梅花。作品：《殢人娇》（玉瘦香浓） 殢人娇 后庭梅花开有感 （1128年2月） 宋 · 李清照",
-    },
-    {
-      lng: 120.586673,
-      lat: 30.036519,
-      label: "绍兴",
-      detail: "，46岁\n，48岁",
+      lng: 107.407139,
+      lat: 34.527456,
+      label: "凤翔（天兴）",
+      detail: "十二月十四日，苏轼到凤翔府签判任。",
     },
     {
       lng: 120.161693,
       lat: 30.280059,
-      label: "杭州",
-      detail: "追随高宗赴临安。\n，52-73岁",
+      label: "杭州（钱塘）",
+      detail: "为杭州通判。苏轼以转运司檄，往常、润、苏、秀赈济饥民。",
+    },
+    {
+      lng: 117.29235,
+      lat: 34.210143,
+      label: "徐州",
+      detail:
+        "在彭城，任徐州知州。正月七日，苏轼猎城南，会者有雷胜等十人，以「身轻一鸟过，枪急万人呼」为韵作诗，并作《猎会诗序》叙其事。",
+    },
+    {
+      lng: 114.878872,
+      lat: 30.459422,
+      label: "黄冈（黄州）",
+      detail: "在黄冈，任黄州团练副使。",
+    },
+    {
+      lng: 114.423348,
+      lat: 23.116409,
+      label: "惠州（归善）",
+      detail:
+        "在归善，任宁远军节度副使。法芝（昙秀）复来。苏轼为作《梦斋铭·叙》 （此文见《苏轼文集》卷十九。）",
+    },
+    {
+      lng: 109.587145,
+      lat: 19.527081,
+      label: "儋州（宜伦）",
+      detail:
+        "在宜伦，任琼州别驾。正月十五日夜，苏轼子过赴儋守张中召。轼有诗。作品：《上元夜过赴儋守召独坐有感》",
+    },
+    {
+      lng: 117.818795,
+      lat: 30.950899,
+      label: "铜陵",
+      detail: "北归途中。至池州。苏轼题诗五松山李白祠堂及陈公园双池。",
     },
   ];
 
   const DYNASTY_URL = "data/hartwell_dynasty_outlines.json";
-  const MIGRATION_DATA_URL = "data/trajectories.json";
   /** 与 WAYPOINTS 对齐的叙事历法年（用于北宋→南宋叠层渐变） */
-  const WAYPOINT_YEARS = [1084, 1096, 1112, 1128, 1132, 1155];
+  const WAYPOINT_YEARS = [1036, 1060, 1063, 1073, 1079, 1082, 1097, 1098, 1101];
+  /** 左上角大事记：按年从小到大；展示规则为取 <= 当前年的最近一条 */
   const TIMELINE_EVENTS = [
-    { year: 1084, text: "李清照生于章丘，书香门第中长成。" },
-    { year: 1101, text: "与赵明诚成婚，金石书画相契相知。" },
-    { year: 1127, text: "靖康之变，北宋覆亡，南渡序幕开启。" },
-    { year: 1128, text: "辗转江宁，家国离乱深刻进入词境。" },
-    { year: 1129, text: "赵明诚卒于建康，清照由此长入孤旅。" },
-    { year: 1132, text: "至越地绍兴一带，南渡后行迹渐定。" },
-    { year: 1134, text: "整理旧藏与文稿，词风更趋沉郁深婉。" },
-    { year: 1155, text: "晚岁定居临安附近，清照词名流传后世。" },
+    { year: 1036, text: "苏轼生于眉山，苏门文脉由此起。" },
+    { year: 1061, text: "苏轼到凤翔签判，正式进入仕途。" },
+    { year: 1069, text: "王安石变法推行，北宋政局转折。" },
+    { year: 1079, text: "乌台诗案后，苏轼贬谪黄州。" },
+    { year: 1085, text: "神宗崩，哲宗即位，朝局一度回调。" },
+    { year: 1094, text: "绍圣党争再起，苏轼远贬岭南。" },
+    { year: 1097, text: "再贬海南儋州，人生至艰而文心更定。" },
+    { year: 1101, text: "北归途中病逝常州，苏轼一生落幕。" },
   ];
   const COMET_MAX = 18;
   /** A→B 段内插值时长（越大越慢、越显渐进） */
   const SEGMENT_MS = 4800;
   /** 沿已走路径流动点阵：按路径长度动态算点数，保持近似恒定密度 */
-  const WALKED_FLOW_DOT_SPACING_DEG = 0.16;
-  const WALKED_FLOW_DOT_MIN = 56;
-  const WALKED_FLOW_DOT_MAX = 420;
+  const WALKED_FLOW_DOT_SPACING_DEG = 0.2;
+  const WALKED_FLOW_DOT_MIN = 48;
+  const WALKED_FLOW_DOT_MAX = 180;
   const WALKED_FLOW_LAPS_PER_SEC = 0.048;
   /** 镜头与当前点相距超过约「度」阈值才跟动（约几十公里量级，可调） */
   const CAMERA_MOVE_THRESH_DEG = 0.38;
@@ -259,18 +278,6 @@
   /** 迁移结束后：全景拉远，定格停留 */
   const PANORAMA_EASE_MS = 3600;
   const PANORAMA_HOLD_MS = 4800;
-  /** 同代南迁背景线：只取明显南移，按年份窗口回看 */
-  const MIGRATION_WINDOW_YEARS = 32;
-  const MIGRATION_MIN_START_LAT = 31;
-  const MIGRATION_MIN_SOUTH_DELTA = 0.22;
-  const MIGRATION_MIN_SEG_DIST = 0.42;
-  const MIGRATION_MAX_FEATURES = 900;
-  const MIGRATION_ACTIVE_SEGMENT_MAX = 260;
-  const MIGRATION_FLOW_MIN_PARTICLES = 120;
-  const MIGRATION_FLOW_MAX_PARTICLES = 280;
-  const MIGRATION_FLOW_LAPS_PER_SEC = 0.022;
-  const LIQZ_NAME = "李清照";
-
   function trimDetail(t) {
     if (!t) return "";
     return String(t)
@@ -352,11 +359,6 @@
   let songDynastyReady = false;
   /** 使用 bundle v4 的 borderHard / borderSoft / borderChinaFade（国界重合处无硬线，外侧淡面暗示外延） */
   let songDynastyBorderSplit = false;
-  let migrationYearBuckets = null;
-  let migrationLastYear = null;
-  let migrationActiveSegments = [];
-  let eraMigrationFlowRaf = null;
-  let eraMigrationFlowPhase = 0;
 
   function simYearAlongSegment(segIndex, t) {
     const y0 = WAYPOINT_YEARS[segIndex];
@@ -392,152 +394,7 @@
       }
     }
     updateRegimeLabelVisibilityFromYU(y, u);
-    updateEraMigrationOverlay(year);
     updateTimelineHud(year);
-  }
-
-  function migrationFeature(a, b, southDelta, dist) {
-    return {
-      type: "Feature",
-      properties: {
-        // 基础强度：位移越南向、距离越长，线越略可见
-        o: Math.min(1, 0.35 + southDelta * 0.65 + dist * 0.08),
-      },
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [a.lng, a.lat],
-          [b.lng, b.lat],
-        ],
-      },
-    };
-  }
-
-  function buildMigrationBuckets(bundle) {
-    const buckets = new Map();
-    if (!bundle || !bundle.poets || !Array.isArray(bundle.poets)) return buckets;
-    for (let p = 0; p < bundle.poets.length; p++) {
-      const poet = bundle.poets[p];
-      if (!poet || poet.name === LIQZ_NAME) continue;
-      const wps = poet.waypoints;
-      if (!Array.isArray(wps) || wps.length < 2) continue;
-      for (let i = 0; i < wps.length - 1; i++) {
-        const a = wps[i];
-        const b = wps[i + 1];
-        if (!a || !b) continue;
-        if (typeof a.lng !== "number" || typeof a.lat !== "number") continue;
-        if (typeof b.lng !== "number" || typeof b.lat !== "number") continue;
-        if (Math.hypot(a.lng - b.lng, a.lat - b.lat) < 1e-8) continue;
-        const moveYearRaw =
-          typeof b.yearStart === "number"
-            ? b.yearStart
-            : typeof a.yearEnd === "number"
-              ? a.yearEnd
-              : a.yearStart;
-        if (typeof moveYearRaw !== "number" || !isFinite(moveYearRaw)) continue;
-        const moveYear = Math.floor(moveYearRaw);
-        if (moveYear < 980 || moveYear > 1220) continue;
-        // 只取“北向起点 -> 南向落点”的明显迁移段，突出南迁浪潮
-        const southDelta = a.lat - b.lat;
-        if (a.lat < MIGRATION_MIN_START_LAT || southDelta < MIGRATION_MIN_SOUTH_DELTA) continue;
-        const dist = Math.hypot(a.lng - b.lng, a.lat - b.lat);
-        if (dist < MIGRATION_MIN_SEG_DIST) continue;
-        if (!buckets.has(moveYear)) buckets.set(moveYear, []);
-        buckets.get(moveYear).push(migrationFeature(a, b, southDelta, dist));
-      }
-    }
-    return buckets;
-  }
-
-  function updateEraMigrationOverlay(year) {
-    const src = map.getSource("era-migration-lines");
-    if (!src || !migrationYearBuckets) return;
-    const y = Math.floor(year);
-    if (migrationLastYear === y) return;
-    migrationLastYear = y;
-    const feats = [];
-    const yLo = Math.max(960, y - MIGRATION_WINDOW_YEARS);
-    for (let yy = yLo; yy <= y; yy++) {
-      const rows = migrationYearBuckets.get(yy);
-      if (!rows || rows.length === 0) continue;
-      const age = y - yy;
-      const fade = 1 - age / MIGRATION_WINDOW_YEARS;
-      for (let i = 0; i < rows.length; i++) {
-        const base = rows[i];
-        feats.push({
-          type: "Feature",
-          properties: { o: (base.properties.o || 1) * Math.max(0.08, fade) },
-          geometry: base.geometry,
-        });
-        if (feats.length >= MIGRATION_MAX_FEATURES) break;
-      }
-      if (feats.length >= MIGRATION_MAX_FEATURES) break;
-    }
-    src.setData({ type: "FeatureCollection", features: feats });
-    migrationActiveSegments = feats
-      .slice(0, MIGRATION_ACTIVE_SEGMENT_MAX)
-      .map(function (f) {
-        const c = f.geometry && f.geometry.coordinates;
-        const o = f.properties && typeof f.properties.o === "number" ? f.properties.o : 0.2;
-        if (!c || c.length < 2) return null;
-        return { a: c[0], b: c[1], o: o };
-      })
-      .filter(Boolean);
-    startEraMigrationFlowAnimation();
-  }
-
-  function lerpPoint(a, b, t) {
-    return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
-  }
-
-  function stopEraMigrationFlowAnimation() {
-    if (eraMigrationFlowRaf != null) {
-      cancelAnimationFrame(eraMigrationFlowRaf);
-      eraMigrationFlowRaf = null;
-    }
-    eraMigrationFlowPhase = 0;
-    tickEraMigrationFlow._lastMs = 0;
-    const src = map.getSource("era-migration-flow");
-    if (src) src.setData(emptyFC());
-  }
-
-  function tickEraMigrationFlow(nowMs) {
-    const src = map.getSource("era-migration-flow");
-    const segs = migrationActiveSegments;
-    if (!src || !segs || segs.length === 0) {
-      if (eraMigrationFlowRaf != null) {
-        cancelAnimationFrame(eraMigrationFlowRaf);
-        eraMigrationFlowRaf = null;
-      }
-      return;
-    }
-    eraMigrationFlowRaf = requestAnimationFrame(tickEraMigrationFlow);
-    const last = tickEraMigrationFlow._lastMs || nowMs;
-    const dt = Math.min(0.1, Math.max(0, (nowMs - last) / 1000));
-    tickEraMigrationFlow._lastMs = nowMs;
-    eraMigrationFlowPhase += MIGRATION_FLOW_LAPS_PER_SEC * (dt || 0.016);
-    eraMigrationFlowPhase %= 1;
-    const n = Math.min(MIGRATION_FLOW_MAX_PARTICLES, Math.max(MIGRATION_FLOW_MIN_PARTICLES, segs.length));
-    const feats = [];
-    for (let i = 0; i < n; i++) {
-      const seg = segs[i % segs.length];
-      const t = (eraMigrationFlowPhase + i / n) % 1;
-      const pt = lerpPoint(seg.a, seg.b, t);
-      feats.push({
-        type: "Feature",
-        properties: { o: Math.min(0.65, Math.max(0.12, (seg.o || 0.2) * 0.92)) },
-        geometry: { type: "Point", coordinates: pt },
-      });
-    }
-    src.setData({ type: "FeatureCollection", features: feats });
-  }
-  tickEraMigrationFlow._lastMs = 0;
-
-  function startEraMigrationFlowAnimation() {
-    if (!migrationActiveSegments || migrationActiveSegments.length === 0) return;
-    if (eraMigrationFlowRaf != null) return;
-    tickEraMigrationFlow._lastMs = performance.now();
-    eraMigrationFlowRaf = requestAnimationFrame(tickEraMigrationFlow);
   }
 
   function nearestTimelineEventText(year) {
@@ -1157,7 +1014,6 @@
     hideAllWaypointLabels();
     clearRouteRecapLayer();
     stopWalkedFlowAnimation();
-    stopEraMigrationFlowAnimation();
     walkedPathCoords.length = 0;
     syncWalkedLineGeoJSON();
     pathHist.length = 0;
@@ -1275,34 +1131,6 @@
     }
 
     map.addSource("walked-flow", { type: "geojson", data: emptyFC() });
-    map.addSource("era-migration-lines", { type: "geojson", data: emptyFC() });
-    map.addSource("era-migration-flow", { type: "geojson", data: emptyFC() });
-    map.addLayer({
-      id: "era-migration-lines",
-      type: "line",
-      source: "era-migration-lines",
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: {
-        "line-color": "#90a4ae",
-        "line-width": 1.05,
-        "line-opacity": ["*", ["get", "o"], 0.2],
-        "line-blur": 0.45,
-      },
-    });
-    map.addLayer({
-      id: "era-migration-flow-circles",
-      type: "circle",
-      source: "era-migration-flow",
-      paint: {
-        "circle-radius": 1.25,
-        "circle-color": "#78909c",
-        "circle-opacity": ["get", "o"],
-        "circle-blur": 0.18,
-        "circle-stroke-width": 0.25,
-        "circle-stroke-color": "rgba(255,255,255,0.45)",
-        "circle-stroke-opacity": ["get", "o"],
-      },
-    });
     map.addLayer({
       id: "walked-flow-circles",
       type: "circle",
@@ -1328,7 +1156,7 @@
         "circle-color": [
           "case",
           ["==", ["get", "head"], 1],
-          "#e53935",
+          "#1976d2",
           "#b0bec5",
         ],
         "circle-opacity": ["get", "o"],
@@ -1343,8 +1171,9 @@
       },
     });
 
+    /** 点阵层置于顶，避免被底图/Hartwell 面盖住 */
     function bringRouteAnimationLayersToFront() {
-      ["era-migration-lines", "era-migration-flow-circles", "walked-flow-circles", "mover-comet-circles"].forEach(function (id) {
+      ["walked-flow-circles", "mover-comet-circles"].forEach(function (id) {
         if (map.getLayer(id)) {
           try {
             map.moveLayer(id);
@@ -1355,18 +1184,6 @@
       });
     }
     bringRouteAnimationLayersToFront();
-
-    try {
-      const tr = await fetch(MIGRATION_DATA_URL);
-      if (tr.ok) {
-        const tj = await tr.json();
-        migrationYearBuckets = buildMigrationBuckets(tj);
-        migrationLastYear = null;
-        updateEraMigrationOverlay(WAYPOINT_YEARS[0]);
-      }
-    } catch (e) {
-      console.warn("Migration trajectories fetch failed", e);
-    }
 
     trimBasemapLabels();
     addWaypointLabelMarkers();

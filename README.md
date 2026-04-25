@@ -9,7 +9,7 @@
 - `scripts/validate_trajectory_samples.py`：做样本诗人轨迹与统计快速校验，输出 `viz/validation_log.txt`。
 - `viz/index.html` + `viz/app.js`：Leaflet 前端，可播放 618–1279 时间轴。
 - `viz/vip-path-trilogy.html` + `viz/vip-path-trilogy.js`：李白 → 苏轼 → 李清照三人**连续**动态行迹（与主图同型控件），叠 CHGIS Hartwell 朝代外廓；李清照时段在地图**右侧**内嵌全词卡片（篇幅自适应、长词滚动），**仅当当前首之后队列里还有下一首时**暂停时间轴，单首或每段最后一首时时间照常走动；展示时收窄顶栏 `#phaseHud`（`#mapStage.has-poem-dock`）以免与诗词重叠。
-- `viz/data/hartwell_dynasty_outlines.json`：Hartwell 朝代线框快照（主图与 trilogy 共用），由 `scripts/build_hartwell_dynasty_outlines.py` 生成。
+- `viz/data/hartwell_dynasty_outlines.json`：Hartwell 朝代线框快照（主图与 trilogy 共用），由 `scripts/build_hartwell_dynasty_outlines.py` 生成；**v4** 起含 `borderHard`、`borderSoft`，以及与今中国国界重合段对应的 **`borderChinaFade`**（国界外淡色面，示意政权范围可能外延；非精确历史边界）。
 - `scripts/record-poet-viz-video.mjs`：Playwright 竖屏录制脚本（1080x1920）。
 - `CHGIS/`：本地历史 GIS 数据目录（当前有 `v6_time_pref_pgn_gbk_wgs84.zip`）。
 
@@ -55,7 +55,7 @@ python3 -m http.server 8765
 
 - 主图：`http://127.0.0.1:8765/index.html`
 - 三人行迹专题：`http://127.0.0.1:8765/vip-path-trilogy.html`
-- 李清照 MapLibre 镜头 Demo（约 22s 循环，可选地形 token）：`http://127.0.0.1:8765/maplibre-liqz-camera-demo.html`
+- 李清照 MapLibre 镜头 Demo（约 65s+ 循环，可选地形 token）：`http://127.0.0.1:8765/maplibre-liqz-camera-demo.html`
 
 ### 2) 录制视频（可选）
 

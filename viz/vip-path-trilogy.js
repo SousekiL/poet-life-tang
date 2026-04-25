@@ -412,6 +412,18 @@
     return null;
   }
 
+  function dynastySnapshotHasBorderSplit(snap) {
+    return (
+      snap &&
+      snap.borderHard &&
+      snap.borderHard.features &&
+      snap.borderHard.features.length &&
+      snap.borderSoft &&
+      snap.borderSoft.features &&
+      snap.borderSoft.features.length
+    );
+  }
+
   function refreshDynastyOverlays(yf) {
     const sid = resolveDynastySnapshotKey(yf);
     if (sid === state.dynastySnapshotId) return;
@@ -421,19 +433,76 @@
     if (!sid || !state.dynastyBundle || !state.dynastyBundle.snapshots) return;
     const snap = state.dynastyBundle.snapshots[sid];
     if (!snap || !snap.geo || !snap.geo.features || !snap.geo.features.length) return;
-    L.geoJSON(snap.geo, {
-      interactive: false,
-      style(feature) {
-        const p = feature.properties || {};
-        return {
-          color: p.stroke || "#546e7a",
-          weight: Number.isFinite(p.weight) ? p.weight : 1.25,
-          fillColor: p.fill || "#90a4ae",
-          fillOpacity: Number.isFinite(p.fillOpacity) ? p.fillOpacity : 0.08,
-          opacity: 0.92,
-        };
-      },
-    }).addTo(state.dynastyLayer);
+    if (dynastySnapshotHasBorderSplit(snap)) {
+      L.geoJSON(snap.geo, {
+        interactive: false,
+        style(feature) {
+          const p = feature.properties || {};
+          return {
+            stroke: false,
+            weight: 0,
+            opacity: 0,
+            fillColor: p.fill || "#90a4ae",
+            fillOpacity: Number.isFinite(p.fillOpacity) ? p.fillOpacity : 0.08,
+          };
+        },
+      }).addTo(state.dynastyLayer);
+      if (
+        snap.borderChinaFade &&
+        snap.borderChinaFade.features &&
+        snap.borderChinaFade.features.length
+      ) {
+        L.geoJSON(snap.borderChinaFade, {
+          interactive: false,
+          style() {
+            return {
+              stroke: false,
+              weight: 0,
+              fillColor: "#b39ddb",
+              fillOpacity: 0.085,
+            };
+          },
+        }).addTo(state.dynastyLayer);
+      }
+      L.geoJSON(snap.borderSoft, {
+        interactive: false,
+        style() {
+          return {
+            color: "#b0bec5",
+            weight: 6,
+            opacity: 0.2,
+            lineCap: "round",
+            lineJoin: "round",
+          };
+        },
+      }).addTo(state.dynastyLayer);
+      L.geoJSON(snap.borderHard, {
+        interactive: false,
+        style() {
+          return {
+            color: "#455a64",
+            weight: 1.5,
+            opacity: 0.75,
+            lineCap: "round",
+            lineJoin: "round",
+          };
+        },
+      }).addTo(state.dynastyLayer);
+    } else {
+      L.geoJSON(snap.geo, {
+        interactive: false,
+        style(feature) {
+          const p = feature.properties || {};
+          return {
+            color: p.stroke || "#546e7a",
+            weight: Number.isFinite(p.weight) ? p.weight : 1.25,
+            fillColor: p.fill || "#90a4ae",
+            fillOpacity: Number.isFinite(p.fillOpacity) ? p.fillOpacity : 0.08,
+            opacity: 0.92,
+          };
+        },
+      }).addTo(state.dynastyLayer);
+    }
   }
 
   function clearTrailSegs() {

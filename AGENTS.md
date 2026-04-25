@@ -7,7 +7,7 @@
 - **viz/ 是纯前端**（静态 HTML + Leaflet IIFE，无 bundler），`viz/index.html` 为主图，`viz/vip-path-trilogy.html` 为李白→苏轼→李清照三人连播专题。
 - **时间轴** `T0=618`, `T1=1279`，播放速率由 `PLAYBACK_DIVISOR = 270`（`app.js`）控制。
 - **轨迹数据** `viz/data/trajectories.json` 由 `scripts/build_tang_trajectories.py` 从 `data/out/poetlife_flat.sqlite` 生成；不要手改。
-- **Hartwell 朝代外廓** `viz/data/hartwell_dynasty_outlines.json` 由 `scripts/build_hartwell_dynasty_outlines.py` 生成；主图与 trilogy 共用切片键（`tang741`/`chin1080`/`chin1200`），改键须两边一起验。
+- **Hartwell 朝代外廓** `viz/data/hartwell_dynasty_outlines.json`（**v4+**：`borderHard` / `borderSoft` 线 + `borderChinaFade` 面）由 `scripts/build_hartwell_dynasty_outlines.py` 生成；与今中国陆地国界重合的朝代外缘从 **soft 线**中剔除，用 **国界外侧淡色面**示意可能外延；主图、`vip-path-trilogy.js`、`maplibre-liqz-camera-demo.html` 共用切片键；缺 `border*` 时回退旧「面描边」单层。
 - `viz/data/` 下还有 `*_territory.geojson`（tang/song_beisong/song_nansong）是**遗留构建产物，前端不再 fetch**；不要误以为它们在用。
 - **数据源**：`scripts/fetch_poetlife.py` 从 `cnkgraph.com` 拉取（仅限非商业研究用途）。详细 API 见 `scripts/discover_endpoints.md`。
 

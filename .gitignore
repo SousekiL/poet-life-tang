@@ -1,4 +1,5 @@
 CHGIS/extracted/
+CHGIS/preview/
 CHGIS/.venv/
 __pycache__/
 *.pyc
@@ -10,3 +11,7 @@ output/
 
 # Large local media (root目录录屏/成片；如需入库请改用 Git LFS)
 *.mov
+*.mp4
+
+# Raw GIS data — not tracked
+/CHGIS/

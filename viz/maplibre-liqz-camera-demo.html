@@ -38,7 +38,7 @@
       font-size: 19px;
       font-weight: 700;
       line-height: 1.2;
-      color: #4a148c;
+      color: #ffd166;
       text-shadow:
         0 0 6px #fff,
         0 0 10px #fff,
@@ -80,7 +80,7 @@
       font-size: 28px;
       font-weight: 600;
       letter-spacing: 0.14em;
-      color: rgba(55, 71, 79, 0.36);
+      color: rgba(207, 216, 220, 0.34);
       text-shadow:
         0 0 10px rgba(255, 255, 255, 0.98),
         0 0 18px rgba(255, 255, 255, 0.9),
@@ -104,10 +104,10 @@
       width: min(440px, 92vw);
       max-height: min(38vh, 320px);
       padding: 12px 16px 14px;
-      background: rgba(255, 252, 254, 0.94);
-      border: 1px solid rgba(244, 143, 177, 0.5);
+      background: rgba(7, 11, 20, 0.84);
+      border: 1px solid rgba(255, 107, 141, 0.45);
       border-radius: 12px;
-      box-shadow: 0 8px 28px rgba(74, 20, 120, 0.15);
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
       font-family: "Kaiti SC", "STKaiti", "KaiTi", "Songti SC", serif;
       opacity: 0;
       pointer-events: none;
@@ -122,20 +122,20 @@
     #deed-pop .deed-place {
       font-size: 18px;
       font-weight: 800;
-      color: #880e4f;
+      color: #ff6b8d;
       margin-bottom: 4px;
     }
     #deed-pop .deed-year {
       font-size: 13px;
       font-weight: 700;
-      color: #455a64;
+      color: #90caf9;
       margin-bottom: 8px;
       letter-spacing: 0.04em;
     }
     #deed-pop .deed-body {
       font-size: 16px;
       line-height: 1.65;
-      color: #263238;
+      color: #e6edf3;
       white-space: pre-wrap;
       word-break: break-word;
     }
@@ -147,24 +147,28 @@
       max-width: min(420px, 84vw);
       padding: 10px 12px;
       border-radius: 10px;
-      border: 1px solid rgba(176, 190, 197, 0.52);
-      background: rgba(255, 255, 255, 0.84);
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
-      color: #263238;
+      border: 1px solid rgba(73, 95, 118, 0.62);
+      background: rgba(6, 10, 18, 0.76);
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+      color: #e2ecf5;
       pointer-events: none;
       backdrop-filter: blur(1.5px);
     }
     #timeline-hud .timeline-year {
       font-size: 17px;
       font-weight: 800;
-      color: #880e4f;
+      color: #ffd166;
       margin-bottom: 4px;
       line-height: 1.2;
     }
     #timeline-hud .timeline-event {
       font-size: 14px;
       line-height: 1.45;
-      color: #37474f;
+      color: #d6e6f7;
+    }
+    #timeline-hud.transition-hit {
+      border-color: rgba(255, 209, 102, 0.92);
+      box-shadow: 0 0 0 1px rgba(255, 209, 102, 0.28), 0 0 24px rgba(255, 209, 102, 0.2);
     }
   </style>
 </head>
@@ -269,6 +273,8 @@
   const MIGRATION_FLOW_MIN_PARTICLES = 120;
   const MIGRATION_FLOW_MAX_PARTICLES = 280;
   const MIGRATION_FLOW_LAPS_PER_SEC = 0.022;
+  const TRANSITION_HIT_YEAR = 1127;
+  const TRANSITION_HIT_WINDOW = 2.2;
   const LIQZ_NAME = "李清照";
 
   function trimDetail(t) {
@@ -333,7 +339,7 @@
 
   const map = new maplibregl.Map({
     container: "map",
-    style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+    style: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
     center: [WAYPOINTS[0].lng, WAYPOINTS[0].lat],
     zoom: 5.4,
     pitch: 0,
@@ -450,8 +456,7 @@
   }
 
   function updateEraMigrationOverlay(year) {
-    const src = map.getSource("era-migration-lines");
-    if (!src || !migrationYearBuckets) return;
+    if (!migrationYearBuckets) return;
     const y = Math.floor(year);
     if (migrationLastYear === y) return;
     migrationLastYear = y;
@@ -473,7 +478,6 @@
       }
       if (feats.length >= MIGRATION_MAX_FEATURES) break;
     }
-    src.setData({ type: "FeatureCollection", features: feats });
     migrationActiveSegments = feats
       .slice(0, MIGRATION_ACTIVE_SEGMENT_MAX)
       .map(function (f) {
@@ -515,9 +519,12 @@
     const last = tickEraMigrationFlow._lastMs || nowMs;
     const dt = Math.min(0.1, Math.max(0, (nowMs - last) / 1000));
     tickEraMigrationFlow._lastMs = nowMs;
-    eraMigrationFlowPhase += MIGRATION_FLOW_LAPS_PER_SEC * (dt || 0.016);
+    const transitionBoost = Math.max(0, 1 - Math.min(1, Math.abs((migrationLastYear || 0) - TRANSITION_HIT_YEAR) / 3.2));
+    const speedBoost = 1 + transitionBoost * 0.55;
+    eraMigrationFlowPhase += MIGRATION_FLOW_LAPS_PER_SEC * speedBoost * (dt || 0.016);
     eraMigrationFlowPhase %= 1;
-    const n = Math.min(MIGRATION_FLOW_MAX_PARTICLES, Math.max(MIGRATION_FLOW_MIN_PARTICLES, segs.length));
+    const boostedMax = Math.round(MIGRATION_FLOW_MAX_PARTICLES * (1 + transitionBoost * 0.42));
+    const n = Math.min(boostedMax, Math.max(MIGRATION_FLOW_MIN_PARTICLES, segs.length));
     const feats = [];
     for (let i = 0; i < n; i++) {
       const seg = segs[i % segs.length];
@@ -525,7 +532,10 @@
       const pt = lerpPoint(seg.a, seg.b, t);
       feats.push({
         type: "Feature",
-        properties: { o: Math.min(0.65, Math.max(0.12, (seg.o || 0.2) * 0.92)) },
+        properties: {
+          o: Math.min(0.84, Math.max(0.14, (seg.o || 0.2) * (0.9 + transitionBoost * 0.42))),
+          hot: transitionBoost > 0.2 ? 1 : 0,
+        },
         geometry: { type: "Point", coordinates: pt },
       });
     }
@@ -558,6 +568,8 @@
     const y = Math.floor(year);
     if (yEl) yEl.textContent = "公元 " + y + " 年";
     if (eEl) eEl.textContent = nearestTimelineEventText(y);
+    const hit = Math.abs(year - TRANSITION_HIT_YEAR) <= TRANSITION_HIT_WINDOW;
+    root.classList.toggle("transition-hit", hit);
   }
 
   function snapshotHasBorderSplit(snap) {
@@ -1275,31 +1287,23 @@
     }
 
     map.addSource("walked-flow", { type: "geojson", data: emptyFC() });
-    map.addSource("era-migration-lines", { type: "geojson", data: emptyFC() });
     map.addSource("era-migration-flow", { type: "geojson", data: emptyFC() });
-    map.addLayer({
-      id: "era-migration-lines",
-      type: "line",
-      source: "era-migration-lines",
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: {
-        "line-color": "#90a4ae",
-        "line-width": 1.05,
-        "line-opacity": ["*", ["get", "o"], 0.2],
-        "line-blur": 0.45,
-      },
-    });
     map.addLayer({
       id: "era-migration-flow-circles",
       type: "circle",
       source: "era-migration-flow",
       paint: {
-        "circle-radius": 1.25,
-        "circle-color": "#78909c",
+        "circle-radius": 1.45,
+        "circle-color": [
+          "case",
+          ["==", ["get", "hot"], 1],
+          "#8be9ff",
+          "#37d5ff",
+        ],
         "circle-opacity": ["get", "o"],
-        "circle-blur": 0.18,
-        "circle-stroke-width": 0.25,
-        "circle-stroke-color": "rgba(255,255,255,0.45)",
+        "circle-blur": 0.28,
+        "circle-stroke-width": 0.35,
+        "circle-stroke-color": "rgba(220,245,255,0.65)",
         "circle-stroke-opacity": ["get", "o"],
       },
     });
@@ -1308,10 +1312,10 @@
       type: "circle",
       source: "walked-flow",
       paint: {
-        "circle-radius": 2.55,
-        "circle-color": "#78909c",
-        "circle-opacity": 0.64,
-        "circle-blur": 0.2,
+        "circle-radius": 2.65,
+        "circle-color": "#9fb3c2",
+        "circle-opacity": 0.56,
+        "circle-blur": 0.28,
         "circle-stroke-width": 0.5,
         "circle-stroke-color": "rgba(255,255,255,0.55)",
         "circle-stroke-opacity": 0.38,
@@ -1328,8 +1332,8 @@
         "circle-color": [
           "case",
           ["==", ["get", "head"], 1],
-          "#e53935",
-          "#b0bec5",
+          "#ff5d73",
+          "#90a4ae",
         ],
         "circle-opacity": ["get", "o"],
         "circle-stroke-width": ["case", ["==", ["get", "head"], 1], 1.2, 0.5],
@@ -1344,7 +1348,7 @@
     });
 
     function bringRouteAnimationLayersToFront() {
-      ["era-migration-lines", "era-migration-flow-circles", "walked-flow-circles", "mover-comet-circles"].forEach(function (id) {
+      ["era-migration-flow-circles", "walked-flow-circles", "mover-comet-circles"].forEach(function (id) {
         if (map.getLayer(id)) {
           try {
             map.moveLayer(id);

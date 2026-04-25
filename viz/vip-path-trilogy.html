@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>李白 · 苏轼 · 李清照 — 动态行迹</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: #dce8f4;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .toplink {
+      flex-shrink: 0;
+      padding: 8px 14px;
+      font-size: 12px;
+      color: #546e7a;
+      background: #eceff1;
+      border-bottom: 1px solid #cfd8dc;
+    }
+    .toplink a { color: #1565c0; }
+    #bar {
+      flex-shrink: 0;
+      min-height: 96px;
+      padding: 8px 12px;
+      background: #f5f5f5;
+      color: #212121;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      align-items: center;
+    }
+    #yearLabel { font-size: 20px; font-weight: 700; min-width: 120px; color: #111; }
+    #poetBadge {
+      font-size: 14px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 999px;
+      background: #eceff1;
+      color: #37474f;
+      border: 1px solid #cfd8dc;
+    }
+    #bar label { display: flex; flex-direction: column; font-size: 11px; gap: 2px; }
+    #bar label .speed-eta { font-size: 10px; color: #546e7a; margin-top: 1px; max-width: 140px; }
+    #bar input[type="range"] { width: 140px; }
+    button {
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: none;
+      background: #c62828;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button.secondary { background: #546e7a; color: #fff; }
+    .hint {
+      font-size: 11px;
+      color: #616161;
+      max-width: min(520px, 94vw);
+      line-height: 1.35;
+    }
+    #vizWrap {
+      flex: 1;
+      min-height: 0;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    #mapStage {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(180deg, #5b9bd4 0%, #8eb8e0 45%, #c5daf0 100%);
+    }
+    #map {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border-radius: 8px;
+    }
+    .leaflet-container {
+      background: #7eb3e5 !important;
+      border-radius: 8px;
+    }
+    /* 李清照：地图右侧、垂直约在中间偏下；尺寸随篇幅收缩，长词内部滚动 */
+    #poemDock {
+      position: absolute;
+      z-index: 1000;
+      right: clamp(10px, 2.2vw, 22px);
+      top: clamp(96px, 12vmin, 128px);
+      bottom: 44px;
+      left: auto;
+      height: fit-content;
+      margin-top: auto;
+      margin-bottom: auto;
+      width: auto;
+      min-width: min(9.5rem, calc(100% - 16px));
+      max-width: min(268px, calc(100% - 16px));
+      transform: translateY(10px);
+      display: none;
+      flex-direction: column;
+      padding: 10px 12px;
+      background: rgba(255, 252, 254, 0.86);
+      border: 1px solid rgba(244, 143, 177, 0.45);
+      border-radius: 12px;
+      box-shadow:
+        0 8px 32px rgba(74, 20, 120, 0.12),
+        0 1px 0 rgba(255, 255, 255, 0.9) inset;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      font-family: "Kaiti SC", "STKaiti", "KaiTi", "Songti SC", serif;
+      overflow: hidden;
+      pointer-events: auto;
+      box-sizing: border-box;
+    }
+    #poemDock.is-visible {
+      display: inline-flex;
+    }
+    #poemDock .poem-scroll {
+      overflow-y: auto;
+      overflow-x: hidden;
+      max-width: 100%;
+      max-height: min(52vmin, 52vh, 480px);
+      -webkit-overflow-scrolling: touch;
+      padding-right: 2px;
+    }
+    #poemDock .poem-era {
+      font-size: 11px;
+      font-weight: 600;
+      color: #880e4f;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+      font-family: system-ui, sans-serif;
+      flex-shrink: 0;
+    }
+    #poemDock .poem-title {
+      font-size: 15px;
+      font-weight: 800;
+      color: #4a148c;
+      margin-bottom: 8px;
+      line-height: 1.35;
+      flex-shrink: 0;
+      max-width: 100%;
+    }
+    #poemDock .poem-body {
+      font-size: 14px;
+      line-height: 1.8;
+      color: #263238;
+      white-space: pre-wrap;
+      word-break: keep-all;
+      max-width: 100%;
+    }
+    /* 与主图 histHud 同构：当前阶段（诗人 + 历法年） */
+    #phaseHud {
+      position: absolute;
+      z-index: 1050;
+      top: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(560px, 92vw);
+      padding: 12px 18px;
+      background: rgba(255, 255, 255, 0.93);
+      border-radius: 10px;
+      border: 1px solid #cfd8dc;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+      pointer-events: none;
+      display: grid;
+      grid-template-columns: 6.25rem minmax(0, 1fr);
+      column-gap: 14px;
+      align-items: start;
+      font-family: "Kaiti SC", "STKaiti", "KaiTi", serif;
+    }
+    #phaseHud .hist-year-chip {
+      width: 100%;
+      padding: 10px 8px;
+      border-radius: 999px;
+      background: linear-gradient(145deg, #eceff1, #cfd8dc);
+      border: 1px solid #b0bec5;
+      font-size: 20px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: #37474f;
+      text-align: center;
+      line-height: 1.2;
+    }
+    #phaseHud .phase-body strong {
+      display: block;
+      font-size: 18px;
+      font-weight: 700;
+      color: #37474f;
+      margin-bottom: 2px;
+    }
+    #phaseHud .phase-body .phase-sub {
+      font-size: 14px;
+      color: #78909c;
+      line-height: 1.45;
+    }
+    /* 有诗词时收窄顶卡，避免与右侧叠层水平重叠（尤其放大视图） */
+    #mapStage.has-poem-dock #phaseHud {
+      width: min(560px, max(220px, calc(100% - clamp(188px, 28vw, 288px))));
+      max-width: min(560px, max(220px, calc(100% - clamp(188px, 28vw, 288px))));
+    }
+    #err {
+      display: none;
+      margin: 10px 14px;
+      padding: 10px;
+      background: #ffebee;
+      color: #b71c1c;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="toplink"><a href="index.html">← 返回主图</a> · 三人按时代先后连续播放（李白 → 苏轼 → 李清照）</div>
+  <div id="err"></div>
+  <div id="bar">
+    <span id="yearLabel">701 年</span>
+    <span id="poetBadge">李白</span>
+    <button type="button" id="btnPlay">播放</button>
+    <button type="button" class="secondary" id="btnReset">重置</button>
+    <label>进度<input type="range" id="rngProgress" min="0" max="1000" value="0" /></label>
+    <label>年速<input type="range" id="rngSpeed" min="1" max="45" value="4" /><span id="speedEta" class="speed-eta" aria-live="polite"></span></label>
+    <span class="hint">迁移与事迹见上方卡片。李清照全词叠在地图右侧（约 8–14 秒）；仅当后面还有下一首时暂停时间轴。底图叠加 CHGIS Hartwell 朝代外廓。拖拽进度可回看。</span>
+  </div>
+  <div id="vizWrap">
+    <div id="mapStage">
+      <div id="phaseHud" aria-live="polite">
+        <div class="hist-year-chip" id="phaseYearChip">701</div>
+        <div class="phase-body">
+          <strong id="phasePoetTitle">李白</strong>
+          <span class="phase-sub" id="phaseSub">行迹编年</span>
+        </div>
+      </div>
+      <div id="map"></div>
+      <aside id="poemDock" aria-live="polite" aria-label="李清照作品"></aside>
+    </div>
+  </div>
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script src="vip-path-trilogy.js"></script>
+</body>
+</html>

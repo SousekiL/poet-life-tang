@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>李清照行迹 · MapLibre 镜头 + 地形 Demo（约 22s 循环）</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css"
+    crossorigin=""
+  />
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; font-family: system-ui, sans-serif; }
+    #map { position: absolute; inset: 0; }
+    #hud {
+      position: absolute;
+      z-index: 2;
+      left: 12px;
+      right: 12px;
+      top: 12px;
+      max-width: min(520px, 94vw);
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.92);
+      border-radius: 10px;
+      border: 1px solid #cfd8dc;
+      font-size: 13px;
+      line-height: 1.45;
+      color: #263238;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+    }
+    #hud strong { color: #880e4f; }
+    #hud code { font-size: 11px; background: #eceff1; padding: 2px 6px; border-radius: 4px; }
+    a { color: #1565c0; }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <strong>MapLibre 李清照镜头 Demo</strong>（约 <strong>22s</strong> 自动循环：出生地拉近 → 俯瞰 → 动点沿简迹迁移）<br />
+    立体地形（可选）：在地址后加 <code>?mapbox=你的Mapbox_token</code> 会加载 Mapbox Terrain-RGB；无 token 时为矢量底图 + 大俯仰角，仍可感受「跟镜」。<br />
+    <a href="index.html">← 主图</a> · <a href="vip-path-trilogy.html">Leaflet 专题</a>
+  </div>
+  <div id="map" aria-label="地图"></div>
+  <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" crossorigin=""></script>
+  <script>
+(function () {
+  /** 简迹：自 trajectories 李清照路点抽取代表性驻点（演示用） */
+  const WAYPOINTS = [
+    { lng: 117.532344, lat: 36.685415, label: "章丘（出生地）" },
+    { lng: 114.313904, lat: 34.802941, label: "开封" },
+    { lng: 118.440962, lat: 36.778223, label: "益都" },
+    { lng: 118.802891, lat: 32.064735, label: "江宁" },
+    { lng: 120.586673, lat: 30.036519, label: "绍兴" },
+    { lng: 120.161693, lat: 30.280059, label: "杭州" },
+  ];
+
+  function getMapboxToken() {
+    try {
+      const q = new URLSearchParams(location.search);
+      return (q.get("mapbox") || q.get("token") || "").trim();
+    } catch {
+      return "";
+    }
+  }
+
+  const mapboxToken = getMapboxToken();
+
+  const map = new maplibregl.Map({
+    container: "map",
+    style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+    center: [WAYPOINTS[0].lng, WAYPOINTS[0].lat],
+    zoom: 5.4,
+    pitch: 0,
+    bearing: 0,
+    maxPitch: 85,
+    attributionControl: true,
+  });
+
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+
+  const lineGeo = {
+    type: "Feature",
+    properties: {},
+    geometry: {
+      type: "LineString",
+      coordinates: WAYPOINTS.map((w) => [w.lng, w.lat]),
+    },
+  };
+
+  function moverFeature(lng, lat) {
+    return {
+      type: "Feature",
+      properties: {},
+      geometry: { type: "Point", coordinates: [lng, lat] },
+    };
+  }
+
+  function easeTo(opts) {
+    return new Promise(function (resolve) {
+      map.easeTo(Object.assign({ essential: true }, opts));
+      map.once("moveend", resolve);
+    });
+  }
+
+  function wait(ms) {
+    return new Promise(function (r) {
+      setTimeout(r, ms);
+    });
+  }
+
+  function setMover(lng, lat) {
+    const src = map.getSource("mover");
+    if (src) src.setData(moverFeature(lng, lat));
+  }
+
+  async function runSequence() {
+    const w0 = WAYPOINTS[0];
+    await easeTo({
+      center: [w0.lng, w0.lat],
+      zoom: 10.2,
+      pitch: 78,
+      bearing: 38,
+      duration: 3800,
+    });
+    setMover(w0.lng, w0.lat);
+
+    await easeTo({
+      center: [116.85, 35.55],
+      zoom: 6.35,
+      pitch: 68,
+      bearing: -22,
+      duration: 3200,
+    });
+
+    for (let i = 0; i < WAYPOINTS.length - 1; i++) {
+      const a = WAYPOINTS[i];
+      const b = WAYPOINTS[i + 1];
+      const steps = 8;
+      for (let s = 1; s <= steps; s++) {
+        const t = s / steps;
+        const lng = a.lng + (b.lng - a.lng) * t;
+        const lat = a.lat + (b.lat - a.lat) * t;
+        setMover(lng, lat);
+        const midLng = a.lng + (b.lng - a.lng) * Math.min(1, t + 0.1);
+        const midLat = a.lat + (b.lat - a.lat) * Math.min(1, t + 0.1);
+        map.easeTo({
+          center: [midLng, midLat],
+          zoom: 6.75 - i * 0.06,
+          pitch: 56 - i * 1.2,
+          bearing: map.getBearing() * 0.94 - 3,
+          duration: 280,
+          essential: true,
+        });
+        await wait(260);
+      }
+      await wait(120);
+    }
+
+    const wLast = WAYPOINTS[WAYPOINTS.length - 1];
+    await easeTo({
+      center: [wLast.lng, wLast.lat],
+      zoom: 8.2,
+      pitch: 62,
+      bearing: 12,
+      duration: 2800,
+    });
+    setMover(wLast.lng, wLast.lat);
+    await wait(700);
+  }
+
+  async function loop() {
+    for (;;) {
+      try {
+        await runSequence();
+      } catch (e) {
+        console.warn(e);
+        await wait(2000);
+      }
+    }
+  }
+
+  map.on("load", function () {
+    if (mapboxToken) {
+      try {
+        map.addSource("terrain-rgb", {
+          type: "raster-dem",
+          tiles: [
+            "https://api.mapbox.com/v4/mapbox.terrain-rgb/{z}/{x}/{y}.pngraw?access_token=" +
+              encodeURIComponent(mapboxToken),
+          ],
+          tileSize: 256,
+          maxzoom: 14,
+        });
+        map.setTerrain({ source: "terrain-rgb", exaggeration: 1.45 });
+      } catch (e) {
+        console.warn("Terrain init failed", e);
+      }
+    }
+
+    map.addSource("route", { type: "geojson", data: lineGeo });
+    map.addLayer({
+      id: "route-line",
+      type: "line",
+      source: "route",
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: {
+        "line-color": "#ad1457",
+        "line-opacity": 0.88,
+        "line-width": 3.2,
+      },
+    });
+
+    map.addSource("mover", { type: "geojson", data: moverFeature(WAYPOINTS[0].lng, WAYPOINTS[0].lat) });
+    map.addLayer({
+      id: "mover-dot",
+      type: "circle",
+      source: "mover",
+      paint: {
+        "circle-radius": 9,
+        "circle-color": "#f48fb1",
+        "circle-stroke-width": 2,
+        "circle-stroke-color": "#ffffff",
+      },
+    });
+
+    map.once("idle", function () {
+      loop();
+    });
+  });
+})();
+  </script>
+</body>
+</html>

@@ -424,6 +424,11 @@
     vipTrailsLayer: null,
     moversLayer: null,
     pulseLayer: null,
+    /** Hartwell 朝代外轮廓（按年切换）；无数据或未加载时为 null */
+    dynastyLayer: null,
+    dynastyBundle: null,
+    /** 当前已渲染的 snapshot id，避免每帧重复建层 */
+    dynastySnapshotId: null,
     poetMarkers: new Map(),
     trailSegs: new Map(),
     vipTrailSegs: new Map(),
@@ -1041,6 +1046,7 @@
     updateMovers(state.currentY, maxPoets);
     updateKeyCities(state.currentY);
     updateHistHud(state.currentY);
+    refreshDynastyOverlays(yInt);
     state.raf = requestAnimationFrame(frame);
   }
 
@@ -1130,6 +1136,41 @@
     }
   }
 
+  /**
+   * Hartwell v5 朝代外轮廓切片（与 scripts/build_hartwell_dynasty_outlines.py 一致）。
+   * 907–959 五代十国无对应切片 → 不叠层。
+   */
+  function resolveDynastySnapshotKey(yf) {
+    if (yf >= 618 && yf <= 907) return "tang741";
+    if (yf >= 960 && yf <= 1126) return "chin1080";
+    if (yf >= 1127 && yf <= 1279) return "chin1200";
+    return null;
+  }
+
+  function refreshDynastyOverlays(yf) {
+    const sid = resolveDynastySnapshotKey(yf);
+    if (sid === state.dynastySnapshotId) return;
+    state.dynastySnapshotId = sid;
+    if (!state.dynastyLayer) return;
+    state.dynastyLayer.clearLayers();
+    if (!sid || !state.dynastyBundle || !state.dynastyBundle.snapshots) return;
+    const snap = state.dynastyBundle.snapshots[sid];
+    if (!snap || !snap.geo || !snap.geo.features || !snap.geo.features.length) return;
+    L.geoJSON(snap.geo, {
+      interactive: false,
+      style(feature) {
+        const p = feature.properties || {};
+        return {
+          color: p.stroke || "#546e7a",
+          weight: Number.isFinite(p.weight) ? p.weight : 1.25,
+          fillColor: p.fill || "#90a4ae",
+          fillOpacity: Number.isFinite(p.fillOpacity) ? p.fillOpacity : 0.08,
+          opacity: 0.92,
+        };
+      },
+    }).addTo(state.dynastyLayer);
+  }
+
   function initCityLayer() {
     state.cityLayer = L.layerGroup().addTo(state.map);
     state.cityEraIndex = -1;
@@ -1152,6 +1193,15 @@
     state.data = await res.json();
     state.eventsByYear = buildEventsByYear(state.data.events || []);
 
+    let dynastyBundle = null;
+    try {
+      const dRes = await fetch("data/hartwell_dynasty_outlines.json");
+      if (dRes.ok) dynastyBundle = await dRes.json();
+    } catch {
+      dynastyBundle = null;
+    }
+    state.dynastyBundle = dynastyBundle;
+
     state.map = L.map("map", {
       worldCopyJump: true,
       zoomControl: !VIZ_VIDEO_EXPORT,
@@ -1163,6 +1213,7 @@
     await tryAddWorldCountries();
     const china = await loadChinaOutline();
     addChinaLayers(china);
+    state.dynastyLayer = L.layerGroup().addTo(state.map);
     state.trailsLayer = L.layerGroup().addTo(state.map);
     state.vipTrailsLayer = L.layerGroup().addTo(state.map);
     initCityLayer();
@@ -1216,6 +1267,8 @@
       clearAllVipCaptions();
       hideIntroTitleCardImmediately();
       hideMarkerDotGuideImmediately();
+      state.dynastySnapshotId = null;
+      refreshDynastyOverlays(Math.floor(state.currentY));
       resetOutroVisual();
       setTimeUiVisible(false);
     };
@@ -1235,6 +1288,8 @@
       hideIntroTitleCardImmediately();
       hideMarkerDotGuideImmediately();
       document.getElementById("btnPlay").textContent = "播放";
+      state.dynastySnapshotId = null;
+      refreshDynastyOverlays(yInt);
       setTimeUiVisible(false);
       if (state.currentY < T1 - 0.05) resetOutroVisual();
     };

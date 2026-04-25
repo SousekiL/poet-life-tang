@@ -2,3 +2,5 @@ httpx>=0.27.0
 # 可选：从 CHGIS 州面生成 viz/data/*_territory*.geojson（见 scripts/build_chgis_territory.py）
 pyshp>=2.3.0
 shapely>=2.0.0
+# 可选：scripts/build_hartwell_dynasty_outlines.py（Hartwell .prj → WGS84）
+pyproj>=3.6.0

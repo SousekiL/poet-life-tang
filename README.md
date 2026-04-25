@@ -8,6 +8,8 @@
 - `scripts/build_tang_trajectories.py`：把原始库重建为前端消费的 `viz/data/trajectories.json`。
 - `scripts/validate_trajectory_samples.py`：做样本诗人轨迹与统计快速校验，输出 `viz/validation_log.txt`。
 - `viz/index.html` + `viz/app.js`：Leaflet 前端，可播放 618–1279 时间轴。
+- `viz/vip-path-trilogy.html` + `viz/vip-path-trilogy.js`：李白 → 苏轼 → 李清照三人**连续**动态行迹（与主图同型控件），叠 CHGIS Hartwell 朝代外廓；李清照时段在地图**右侧**内嵌全词卡片（篇幅自适应、长词滚动），**仅当当前首之后队列里还有下一首时**暂停时间轴，单首或每段最后一首时时间照常走动；展示时收窄顶栏 `#phaseHud`（`#mapStage.has-poem-dock`）以免与诗词重叠。
+- `viz/data/hartwell_dynasty_outlines.json`：Hartwell 朝代线框快照（主图与 trilogy 共用），由 `scripts/build_hartwell_dynasty_outlines.py` 生成。
 - `scripts/record-poet-viz-video.mjs`：Playwright 竖屏录制脚本（1080x1920）。
 - `CHGIS/`：本地历史 GIS 数据目录（当前有 `v6_time_pref_pgn_gbk_wgs84.zip`）。
 
@@ -25,6 +27,7 @@
   - `#vipDockDeath`（卒年）
   - 同年多 VIP 使用短延迟错峰弹出。
 - 疆域叠层逻辑已在前端停用（不再 fetch `*_territory.geojson`）。
+- 另见独立页 **`vip-path-trilogy.html`**（三人行迹 + Hartwell + 李清照全词叠层），主图页脚/提示中有入口链接。
 
 ## 本轮核心更改记录
 
@@ -37,6 +40,7 @@
    - 同年事件错峰展示，降低重叠。
 5. 历史疆域尝试（CHGIS / 手工示意）后按用户要求先移除前端叠层。
 6. 新增 `scripts/build_chgis_territory.py`（可选，用于从 CHGIS 面数据构建 GeoJSON）。
+7. 新增 `vip-path-trilogy` 独立页：三人行迹连播 + Hartwell 叠层 + 李清照代表作全词叠层（右侧、约 8–14 秒/首，与顶卡避让逻辑见上）。
 
 ## 运行方式
 
@@ -47,7 +51,11 @@ cd viz
 python3 -m http.server 8765
 ```
 
-浏览器打开：`http://127.0.0.1:8765/index.html`
+浏览器打开：
+
+- 主图：`http://127.0.0.1:8765/index.html`
+- 三人行迹专题：`http://127.0.0.1:8765/vip-path-trilogy.html`
+- 李清照 MapLibre 镜头 Demo（约 22s 循环，可选地形 token）：`http://127.0.0.1:8765/maplibre-liqz-camera-demo.html`
 
 ### 2) 录制视频（可选）
 
@@ -78,6 +86,18 @@ python3 scripts/build_tang_trajectories.py \
 
 ```bash
 python3 scripts/validate_trajectory_samples.py
+```
+
+### D. Hartwell 朝代外廓 JSON（主图 / trilogy 共用）
+
+```bash
+python3 scripts/build_hartwell_dynasty_outlines.py
+```
+
+### E. 校验 trilogy 脚本语法（可选）
+
+```bash
+node --check viz/vip-path-trilogy.js
 ```
 
 ## 依赖

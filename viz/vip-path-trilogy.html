@@ -11,65 +11,100 @@
     crossorigin=""
   />
   <style>
+    :root {
+      --bg-deep: #0f1923;
+      --bg-surface: #172030;
+      --bg-card: rgba(22, 32, 48, 0.88);
+      --bg-card-solid: #1a2538;
+      --text-primary: #e8edf3;
+      --text-secondary: #8fa4bd;
+      --text-muted: #5a7289;
+      --accent-libai: #4a9eff;
+      --accent-sushi: #ff5252;
+      --accent-liqz: #f06292;
+      --accent-liqz-glow: rgba(240, 98, 146, 0.35);
+      --border-subtle: rgba(120, 155, 195, 0.22);
+      --border-accent: rgba(240, 98, 146, 0.5);
+      --trail-glow: 0 0 8px;
+    }
     * { box-sizing: border-box; }
     html, body {
       height: 100%;
       margin: 0;
       font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-      background: #dce8f4;
+      background: var(--bg-deep);
       display: flex;
       flex-direction: column;
       min-height: 0;
+      color: var(--text-primary);
     }
     .toplink {
       flex-shrink: 0;
       padding: 8px 14px;
       font-size: 12px;
-      color: #546e7a;
-      background: #eceff1;
-      border-bottom: 1px solid #cfd8dc;
+      color: var(--text-secondary);
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
     }
-    .toplink a { color: #1565c0; }
+    .toplink a { color: var(--accent-liqz); text-decoration: none; }
+    .toplink a:hover { text-decoration: underline; }
     #bar {
       flex-shrink: 0;
-      min-height: 96px;
-      padding: 8px 12px;
-      background: #f5f5f5;
-      color: #212121;
-      border-bottom: 1px solid #e0e0e0;
+      min-height: 68px;
+      padding: 10px 14px;
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border-bottom: 1px solid var(--border-subtle);
       display: flex;
       flex-wrap: wrap;
-      gap: 8px 14px;
+      gap: 8px 16px;
       align-items: center;
     }
-    #yearLabel { font-size: 20px; font-weight: 700; min-width: 120px; color: #111; }
+    #yearLabel { font-size: 22px; font-weight: 800; min-width: 110px; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: 0.02em; }
     #poetBadge {
       font-size: 14px;
       font-weight: 700;
-      padding: 4px 12px;
+      padding: 5px 14px;
       border-radius: 999px;
-      background: #eceff1;
-      color: #37474f;
-      border: 1px solid #cfd8dc;
+      background: rgba(240, 98, 146, 0.15);
+      color: var(--accent-liqz);
+      border: 1.5px solid var(--accent-liqz);
+      transition: background 0.25s, border-color 0.25s, color 0.25s;
     }
-    #bar label { display: flex; flex-direction: column; font-size: 11px; gap: 2px; }
-    #bar label .speed-eta { font-size: 10px; color: #546e7a; margin-top: 1px; max-width: 140px; }
-    #bar input[type="range"] { width: 140px; }
+    #bar label { display: flex; flex-direction: column; font-size: 11px; gap: 2px; color: var(--text-secondary); }
+    #bar label .speed-eta { font-size: 10px; color: var(--text-muted); margin-top: 1px; max-width: 140px; }
+    #bar input[type="range"] {
+      width: 130px;
+      accent-color: var(--accent-liqz);
+      height: 4px;
+    }
     button {
-      padding: 6px 14px;
-      border-radius: 6px;
+      padding: 7px 18px;
+      border-radius: 8px;
       border: none;
-      background: #c62828;
+      background: linear-gradient(135deg, #e91e63, #c2185b);
       color: #fff;
       cursor: pointer;
-      font-weight: 600;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      transition: filter 0.18s, transform 0.12s;
+      box-shadow: 0 2px 8px rgba(233, 30, 99, 0.35);
     }
-    button.secondary { background: #546e7a; color: #fff; }
+    button:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    button:active { filter: brightness(0.95); transform: translateY(0); }
+    button.secondary {
+      background: var(--bg-card-solid);
+      color: var(--text-secondary);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+      border: 1px solid var(--border-subtle);
+    }
+    button.secondary:hover { color: #fff; border-color: rgba(120,155,195,0.45); }
     .hint {
       font-size: 11px;
-      color: #616161;
+      color: var(--text-muted);
       max-width: min(520px, 94vw);
-      line-height: 1.35;
+      line-height: 1.4;
     }
     #vizWrap {
       flex: 1;
@@ -83,52 +118,61 @@
       min-height: 0;
       position: relative;
       overflow: hidden;
-      background: linear-gradient(180deg, #5b9bd4 0%, #8eb8e0 45%, #c5daf0 100%);
+      background: #0b1220;
     }
     #map {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
-      border-radius: 8px;
+      border-radius: 0;
     }
     .leaflet-container {
-      background: #7eb3e5 !important;
-      border-radius: 8px;
+      background: #0f1a2e !important;
+      border-radius: 0;
     }
-    /* 李清照：地图右侧、垂直约在中间偏下；尺寸随篇幅收缩，长词内部滚动 */
+    .leaflet-control-attribution { background: rgba(15,25,40,0.72) !important; color: #6a8099 !important; font-size: 10px !important; }
+    .leaflet-control-attribution a { color: #7eb8e8 !important; }
+    /* ── Poem Dock (deep-refined glass card) ── */
     #poemDock {
       position: absolute;
       z-index: 1000;
-      right: clamp(10px, 2.2vw, 22px);
-      top: clamp(96px, 12vmin, 128px);
-      bottom: 44px;
+      right: clamp(12px, 2.4vw, 26px);
+      top: clamp(72px, 10vmin, 110px);
+      bottom: 36px;
       left: auto;
       height: fit-content;
       margin-top: auto;
       margin-bottom: auto;
       width: auto;
-      min-width: min(9.5rem, calc(100% - 16px));
-      max-width: min(268px, calc(100% - 16px));
-      transform: translateY(10px);
-      display: none;
+      min-width: min(9.5rem, calc(100% - 20px));
+      max-width: min(280px, calc(100% - 20px));
+      transform: translateY(12px);
+      opacity: 0;
+      visibility: hidden;
+      display: flex;
       flex-direction: column;
-      padding: 10px 12px;
-      background: rgba(255, 252, 254, 0.86);
-      border: 1px solid rgba(244, 143, 177, 0.45);
-      border-radius: 12px;
+      padding: 14px 16px 16px;
+      background: rgba(16, 22, 36, 0.92);
+      border: 1px solid var(--border-accent);
+      border-radius: 14px;
       box-shadow:
-        0 8px 32px rgba(74, 20, 120, 0.12),
-        0 1px 0 rgba(255, 255, 255, 0.9) inset;
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+        0 0 0 1px rgba(240, 98, 146, 0.08),
+        0 10px 40px rgba(0, 0, 0, 0.45),
+        0 1px 0 rgba(255, 255, 255, 0.06) inset;
+      backdrop-filter: blur(16px) saturate(1.3);
+      -webkit-backdrop-filter: blur(16px) saturate(1.3);
       font-family: "Kaiti SC", "STKaiti", "KaiTi", "Songti SC", serif;
       overflow: hidden;
       pointer-events: auto;
       box-sizing: border-box;
+      transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s 0.45s;
     }
     #poemDock.is-visible {
-      display: inline-flex;
+      visibility: visible;
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1), transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), visibility 0s;
     }
     #poemDock .poem-scroll {
       overflow-y: auto;
@@ -136,35 +180,42 @@
       max-width: 100%;
       max-height: min(52vmin, 52vh, 480px);
       -webkit-overflow-scrolling: touch;
-      padding-right: 2px;
+      padding-right: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(240,98,146,0.25) transparent;
     }
+    #poemDock .poem-scroll::-webkit-scrollbar { width: 4px; }
+    #poemDock .poem-scroll::-webkit-scrollbar-thumb { background: rgba(240,98,146,0.3); border-radius: 4px; }
     #poemDock .poem-era {
       font-size: 11px;
-      font-weight: 600;
-      color: #880e4f;
-      letter-spacing: 0.04em;
+      font-weight: 700;
+      color: var(--accent-liqz);
+      letter-spacing: 0.06em;
       margin-bottom: 6px;
       font-family: system-ui, sans-serif;
       flex-shrink: 0;
+      text-transform: none;
     }
     #poemDock .poem-title {
-      font-size: 15px;
+      font-size: 16px;
       font-weight: 800;
-      color: #4a148c;
-      margin-bottom: 8px;
-      line-height: 1.35;
+      color: #e1bee7;
+      margin-bottom: 10px;
+      line-height: 1.4;
       flex-shrink: 0;
       max-width: 100%;
+      text-shadow: 0 0 12px rgba(240, 98, 146, 0.25);
     }
     #poemDock .poem-body {
-      font-size: 14px;
-      line-height: 1.8;
-      color: #263238;
+      font-size: 14.5px;
+      line-height: 2;
+      color: rgba(230, 225, 240, 0.92);
       white-space: pre-wrap;
       word-break: keep-all;
       max-width: 100%;
+      letter-spacing: 0.04em;
     }
-    /* 与主图 histHud 同构：当前阶段（诗人 + 历法年） */
+    /* ── Phase HUD (top card) ── */
     #phaseHud {
       position: absolute;
       z-index: 1050;
@@ -173,54 +224,58 @@
       transform: translateX(-50%);
       width: min(560px, 92vw);
       padding: 12px 18px;
-      background: rgba(255, 255, 255, 0.93);
-      border-radius: 10px;
-      border: 1px solid #cfd8dc;
-      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.1);
+      background: var(--bg-card);
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      box-shadow: 0 6px 28px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(120,155,195,0.06);
       pointer-events: none;
       display: grid;
-      grid-template-columns: 6.25rem minmax(0, 1fr);
+      grid-template-columns: 5.5rem minmax(0, 1fr);
       column-gap: 14px;
       align-items: start;
       font-family: "Kaiti SC", "STKaiti", "KaiTi", serif;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
     #phaseHud .hist-year-chip {
       width: 100%;
-      padding: 10px 8px;
+      padding: 9px 8px;
       border-radius: 999px;
-      background: linear-gradient(145deg, #eceff1, #cfd8dc);
-      border: 1px solid #b0bec5;
-      font-size: 20px;
+      background: linear-gradient(145deg, rgba(240,98,146,0.18), rgba(240,98,146,0.06));
+      border: 1px solid rgba(240, 98, 146, 0.3);
+      font-size: 19px;
       font-weight: 800;
       font-variant-numeric: tabular-nums;
-      color: #37474f;
+      color: #fff;
       text-align: center;
       line-height: 1.2;
+      text-shadow: 0 0 8px rgba(240,98,146,0.35);
     }
     #phaseHud .phase-body strong {
       display: block;
       font-size: 18px;
       font-weight: 700;
-      color: #37474f;
+      color: #fff;
       margin-bottom: 2px;
     }
     #phaseHud .phase-body .phase-sub {
-      font-size: 14px;
-      color: #78909c;
-      line-height: 1.45;
+      font-size: 13.5px;
+      color: var(--text-secondary);
+      line-height: 1.5;
     }
-    /* 有诗词时收窄顶卡，避免与右侧叠层水平重叠（尤其放大视图） */
+    /* 有诗词时收窄顶卡 */
     #mapStage.has-poem-dock #phaseHud {
-      width: min(560px, max(220px, calc(100% - clamp(188px, 28vw, 288px))));
-      max-width: min(560px, max(220px, calc(100% - clamp(188px, 28vw, 288px))));
+      width: min(560px, max(220px, calc(100% - clamp(200px, 30vw, 310px))));
+      max-width: min(560px, max(220px, calc(100% - clamp(200px, 30vw, 310px))));
     }
     #err {
       display: none;
       margin: 10px 14px;
       padding: 10px;
-      background: #ffebee;
-      color: #b71c1c;
+      background: rgba(198, 40, 40, 0.15);
+      color: #ff8a80;
       border-radius: 8px;
+      border: 1px solid rgba(198, 40, 40, 0.35);
     }
   </style>
 </head>

@@ -4,18 +4,19 @@
   const DYNASTY_URL = "data/hartwell_dynasty_outlines.json";
   const CHINA_GEOJSON_URL = "https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json";
   const BASEMAP_TILES =
-    "https://{s}.basemaps.cartocdn.com/rastertiles/light_nolabels/{z}/{x}/{y}{r}.png";
+    "https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png";
   const BASEMAP_ATTR = '&copy; OSM &copy; CARTO';
-  const BASEMAP_OPACITY = 0.72;
+  const BASEMAP_OPACITY = 0.82;
 
   /** 与主图同量级：playU 0→1 约 PLAYBACK_DIVISOR / speed 秒 */
   const PLAYBACK_DIVISOR = 200;
   const TRAIL_YEAR_WINDOW = 3.15;
+  let act_glow = "rgba(240,98,146,0.4)";
 
   const ACT_DEF = [
-    { key: "libai", name: "李白", match: "李白", y0: 701, y1: 762, line: "#1565c0", stroke: "#0d47a1", mover: "#42a5f5" },
-    { key: "sushi", name: "苏轼", match: "苏轼", y0: 1036, y1: 1101, line: "#c62828", stroke: "#b71c1c", mover: "#ef5350" },
-    { key: "liqz", name: "李清照", match: "李清照", y0: 1084, y1: 1156, line: "#ad1457", stroke: "#880e4f", mover: "#f48fb1" },
+    { key: "libai", name: "李白", match: "李白", y0: 701, y1: 762, line: "#5eb8ff", stroke: "#2a7fd6", mover: "#7ec8ff", glow: "rgba(94,184,255,0.35)" },
+    { key: "sushi", name: "苏轼", match: "苏轼", y0: 1036, y1: 1101, line: "#ff6b6b", stroke: "#d32f2f", mover: "#ff8a80", glow: "rgba(255,107,107,0.35)" },
+    { key: "liqz", name: "李清照", match: "李清照", y0: 1084, y1: 1156, line: "#f06292", stroke: "#e91e63", mover: "#f8bbd0", glow: "rgba(240,98,146,0.4)" },
   ];
 
   /** 李清照：跨越该历法年触发；依次入队，每首展示 3–5s，期间冻结时间轴 */
@@ -110,6 +111,7 @@
     moverLayer: null,
     trailSegs: new Map(),
     moverMk: null,
+    moverGlow: null,
     playU: 0,
     playing: false,
     lastTs: 0,
@@ -267,7 +269,6 @@
     const dock = document.getElementById("poemDock");
     if (!dock) return;
     dock.classList.remove("is-visible");
-    dock.textContent = "";
   }
 
   function renderPoemDock(item) {
@@ -442,8 +443,8 @@
             stroke: false,
             weight: 0,
             opacity: 0,
-            fillColor: p.fill || "#90a4ae",
-            fillOpacity: Number.isFinite(p.fillOpacity) ? p.fillOpacity : 0.08,
+            fillColor: p.fill || "#78909c",
+            fillOpacity: Number.isFinite(p.fillOpacity) ? p.fillOpacity : 0.12,
           };
         },
       }).addTo(state.dynastyLayer);
@@ -458,8 +459,8 @@
             return {
               stroke: false,
               weight: 0,
-              fillColor: "#b39ddb",
-              fillOpacity: 0.085,
+              fillColor: "#ce93d8",
+              fillOpacity: 0.07,
             };
           },
         }).addTo(state.dynastyLayer);
@@ -468,9 +469,9 @@
         interactive: false,
         style() {
           return {
-            color: "#b0bec5",
-            weight: 6,
-            opacity: 0.2,
+            color: "#90a4ae",
+            weight: 5,
+            opacity: 0.15,
             lineCap: "round",
             lineJoin: "round",
           };
@@ -480,9 +481,9 @@
         interactive: false,
         style() {
           return {
-            color: "#455a64",
+            color: "#b0bec5",
             weight: 1.5,
-            opacity: 0.75,
+            opacity: 0.55,
             lineCap: "round",
             lineJoin: "round",
           };
@@ -494,11 +495,11 @@
         style(feature) {
           const p = feature.properties || {};
           return {
-            color: p.stroke || "#546e7a",
+            color: p.stroke || "#78909c",
             weight: Number.isFinite(p.weight) ? p.weight : 1.25,
-            fillColor: p.fill || "#90a4ae",
-            fillOpacity: Number.isFinite(p.fillOpacity) ? p.fillOpacity : 0.08,
-            opacity: 0.92,
+            fillColor: p.fill || "#546e7a",
+            fillOpacity: Number.isFinite(p.fillOpacity) ? p.fillOpacity : 0.12,
+            opacity: 0.65,
           };
         },
       }).addTo(state.dynastyLayer);
@@ -539,7 +540,7 @@
       const mid = (pts[i].y + pts[i + 1].y) / 2;
       let u = (mid - yLo) / W;
       u = Math.max(0, Math.min(1, u));
-      const op = 0.08 + 0.52 * Math.pow(u, 1.35);
+      const op = 0.12 + 0.68 * Math.pow(u, 1.2);
       const ln = L.polyline(
         [
           [pts[i].lat, pts[i].lng],
@@ -548,7 +549,7 @@
         {
           color,
           opacity: op,
-          weight: 2.65,
+          weight: 3.2 + 1.2 * u,
           lineCap: "round",
           lineJoin: "round",
           smoothFactor: 1.12,
@@ -587,17 +588,27 @@
 
   function updateMover(poet, year, fill) {
     const { lat, lng } = posAtYear(poet, year);
+    const glowColor = act_glow || "rgba(240,98,146,0.4)";
     if (!state.moverMk) {
       state.moverMk = L.circleMarker([lat, lng], {
-        radius: 5.2,
-        color: "#eceff1",
-        weight: 1.4,
+        radius: 6.5,
+        color: "#ffffff",
+        weight: 2,
         fillColor: fill,
-        fillOpacity: 0.88,
+        fillOpacity: 0.92,
+      }).addTo(state.moverLayer);
+      state.moverGlow = L.circleMarker([lat, lng], {
+        radius: 14,
+        color: "transparent",
+        weight: 0,
+        fillColor: glowColor,
+        fillOpacity: 0.35,
       }).addTo(state.moverLayer);
     } else {
       state.moverMk.setLatLng([lat, lng]);
       state.moverMk.setStyle({ fillColor: fill });
+      state.moverGlow.setLatLng([lat, lng]);
+      state.moverGlow.setStyle({ fillColor: glowColor });
     }
   }
 
@@ -651,6 +662,7 @@
 
     updatePhaseHud(act, year, poet);
     refreshDynastyOverlays(yf);
+    act_glow = act.glow || "rgba(240,98,146,0.4)";
     updateMover(poet, year, act.mover);
     updateSoloTrail(year, poet, act.line);
 
@@ -726,11 +738,11 @@
         interactive: false,
         style() {
           return {
-            color: "#bdbdbd",
-            weight: 0.75,
-            fillColor: "#ffffff",
-            fillOpacity: 0.94,
-            opacity: 1,
+            color: "#2a3a52",
+            weight: 0.6,
+            fillColor: "#1a2538",
+            fillOpacity: 0.92,
+            opacity: 0.85,
           };
         },
       }).addTo(state.map);
@@ -796,6 +808,10 @@
       if (state.moverMk) {
         state.moverLayer.removeLayer(state.moverMk);
         state.moverMk = null;
+      }
+      if (state.moverGlow) {
+        state.moverLayer.removeLayer(state.moverGlow);
+        state.moverGlow = null;
       }
       state.dynastySnapshotId = null;
       refreshDynastyOverlays(701);

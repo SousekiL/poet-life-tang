@@ -35,24 +35,24 @@
       z-index: 4;
       left: 50%;
       bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-      transform: translateX(-50%) translateY(120%);
+      transform: translateX(-50%) translateY(40px);
       width: min(460px, 90vw);
       max-height: 40vh;
       overflow: auto;
-      padding: 12px 14px;
-      border: 1px solid rgba(255, 107, 141, 0.48);
-      border-radius: 12px;
-      background: rgba(7, 11, 20, 0.86);
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.42);
+      padding: 14px 18px;
+      border: 1px solid rgba(255, 107, 141, 0.5);
+      border-radius: 14px;
+      background: rgba(7, 11, 20, 0.9);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 107, 141, 0.08);
       color: #e6edf3;
-      transition: opacity 0.35s ease, transform 0.35s ease;
+      transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
       opacity: 0;
       pointer-events: none;
     }
     #deed.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    #deedPlace { font-size: 18px; color: #ff6b8d; font-weight: 800; margin-bottom: 4px; }
-    #deedYear { font-size: 13px; color: #90caf9; font-weight: 700; margin-bottom: 8px; }
-    #deedBody { font-size: 16px; line-height: 1.62; white-space: pre-wrap; }
+    #deedPlace { font-size: 18px; color: #ff6b8d; font-weight: 800; margin-bottom: 4px; text-shadow: 0 0 12px rgba(255, 107, 141, 0.35); }
+    #deedYear { font-size: 13px; color: #90caf9; font-weight: 700; margin-bottom: 8px; letter-spacing: 0.03em; }
+    #deedBody { font-size: 16px; line-height: 1.65; white-space: pre-wrap; color: rgba(220, 230, 245, 0.92); }
     @media (max-aspect-ratio: 10/16) {
       #cinematicHud { width: min(360px, 84vw); }
       #hudYear { font-size: 17px; }

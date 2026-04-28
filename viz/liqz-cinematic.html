@@ -3,452 +3,807 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>李清照导演版 · Cinematic Migration</title>
+  <title>李清照行迹 · Cinematic Journey</title>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" crossorigin="" />
   <style>
     * { box-sizing: border-box; }
-    html, body { margin: 0; height: 100%; background: #05070b; font-family: system-ui, sans-serif; }
-    #map { position: fixed; inset: 0; }
-    #cinematicHud {
-      position: fixed;
-      z-index: 4;
-      top: calc(env(safe-area-inset-top, 0px) + 10px);
-      left: max(10px, env(safe-area-inset-left, 0px));
-      width: min(420px, 86vw);
-      padding: 10px 12px 11px;
-      border: 1px solid rgba(75, 96, 120, 0.65);
+    html, body { margin: 0; height: 100%; background: #05070b; font-family: system-ui, sans-serif; overflow: hidden; }
+    #map { position: absolute; inset: 0; }
+
+    /* ── Timeline HUD (top-left) ── */
+    #tlHud {
+      position: absolute; z-index: 3;
+      top: max(10px, calc(env(safe-area-inset-top, 0px) + 10px));
+      left: max(10px, calc(env(safe-area-inset-left, 0px) + 10px));
+      max-width: min(420px, 86vw);
+      padding: 10px 13px 12px;
+      border: 1px solid rgba(73, 95, 118, 0.62);
       border-radius: 10px;
       background: rgba(6, 10, 18, 0.78);
-      color: #e5edf6;
-      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
-      transition: box-shadow 0.35s ease, border-color 0.35s ease;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+      color: #e2ecf5;
       pointer-events: none;
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      transition: border-color 0.35s, box-shadow 0.35s;
     }
-    #cinematicHud.hit {
-      border-color: rgba(255, 209, 102, 0.9);
-      box-shadow: 0 0 0 1px rgba(255, 209, 102, 0.25), 0 0 28px rgba(255, 209, 102, 0.2);
+    #tlHud.transition-hit {
+      border-color: rgba(255,209,102,0.92);
+      box-shadow: 0 0 0 1px rgba(255,209,102,0.25), 0 0 24px rgba(255,209,102,0.18);
     }
-    #hudYear { font-size: 18px; color: #ffd166; font-weight: 800; margin-bottom: 4px; letter-spacing: 0.02em; }
-    #hudEvent { font-size: 14px; line-height: 1.42; color: #d6e5f5; }
-    #deed {
-      position: fixed;
-      z-index: 4;
-      left: 50%;
-      bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+    #tlYear { font-size: 17px; font-weight: 800; color: #ffd166; margin-bottom: 4px; letter-spacing: 0.02em; line-height: 1.2; }
+    #tlEvent { font-size: 14px; line-height: 1.45; color: #d6e6f7; }
+    #tlPoetryHint {
+      margin-top: 6px;
+      font-size: 12px; line-height: 1.5; color: #b388ff;
+      font-family: "Kaiti SC","STKaiti","KaiTi","Songti SC",serif;
+      font-style: italic; display: none;
+    }
+    #tlPoetryHint.active { display: block; }
+
+    /* ── Deed popup (bottom-center) ── */
+    #dkPop {
+      position: absolute; z-index: 4; left: 50%;
+      bottom: calc(max(env(safe-area-inset-bottom, 0px), 10px) + 10px);
       transform: translateX(-50%) translateY(40px);
-      width: min(460px, 90vw);
-      max-height: 40vh;
-      overflow: auto;
+      width: min(460px, 90vw); max-height: 36vh;
+      overflow-y: auto; -webkit-overflow-scrolling: touch;
       padding: 14px 18px;
-      border: 1px solid rgba(255, 107, 141, 0.5);
+      border: 1px solid rgba(240,98,146,0.48);
       border-radius: 14px;
-      background: rgba(7, 11, 20, 0.9);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 107, 141, 0.08);
+      background: rgba(7, 11, 20, 0.88);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(240,98,146,0.06);
       color: #e6edf3;
-      transition: opacity 0.4s cubic-bezier(0.22, 1, 0.36, 1), transform 0.4s cubic-bezier(0.22, 1, 0.36, 1);
-      opacity: 0;
-      pointer-events: none;
+      transition: opacity 0.4s cubic-bezier(0.22,1,0.36,1), transform 0.4s cubic-bezier(0.22,1,0.36,1);
+      opacity: 0; pointer-events: none;
+      scrollbar-width: thin; scrollbar-color: rgba(240,98,146,0.2) transparent;
     }
-    #deed.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    #deedPlace { font-size: 18px; color: #ff6b8d; font-weight: 800; margin-bottom: 4px; text-shadow: 0 0 12px rgba(255, 107, 141, 0.35); }
-    #deedYear { font-size: 13px; color: #90caf9; font-weight: 700; margin-bottom: 8px; letter-spacing: 0.03em; }
-    #deedBody { font-size: 16px; line-height: 1.65; white-space: pre-wrap; color: rgba(220, 230, 245, 0.92); }
-    @media (max-aspect-ratio: 10/16) {
-      #cinematicHud { width: min(360px, 84vw); }
-      #hudYear { font-size: 17px; }
-      #hudEvent { font-size: 13px; }
-      #deedBody { font-size: 15px; }
+    #dkPop::-webkit-scrollbar { width: 4px; }
+    #dkPop::-webkit-scrollbar-thumb { background: rgba(240,98,146,0.25); border-radius: 4px; }
+    #dkPop.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #dkPop .dk-place {
+      font-size: 18px; font-weight: 800; color: #f06292;
+      margin-bottom: 4px; text-shadow: 0 0 10px rgba(240,98,146,0.25);
     }
+    #dkPop .dk-year {
+      font-size: 13px; font-weight: 700; color: #90caf9;
+      margin-bottom: 8px; letter-spacing: 0.03em;
+    }
+    #dkPop .dk-body {
+      font-size: 15px; line-height: 1.68; color: rgba(220,230,245,0.92);
+      white-space: pre-wrap; font-family: "Kaiti SC","STKaiti","KaiTi","Songti SC",serif;
+    }
+
+    /* ── Poetry glass card (bottom-left, like a floating scroll) ── */
+    #pmCard {
+      position: absolute; z-index: 4;
+      bottom: calc(max(env(safe-area-inset-bottom, 0px), 10px) + 10px);
+      left: max(10px, calc(env(safe-area-inset-left, 0px) + 10px));
+      max-width: min(280px, calc(100vw - 24px));
+      padding: 14px 16px 16px;
+      border: 1px solid rgba(240,98,146,0.5);
+      border-radius: 14px;
+      background: rgba(10, 14, 24, 0.9);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
+      font-family: "Kaiti SC","STKaiti","KaiTi","Songti SC",serif;
+      pointer-events: auto;
+      transform: translateY(14px);
+      transition: opacity 0.45s cubic-bezier(0.22,1,0.36,1), transform 0.45s cubic-bezier(0.22,1,0.36,1);
+      opacity: 0; visibility: hidden;
+    }
+    #pmCard.visible { opacity: 1; visibility: visible; transform: translateY(0); }
+    #pmCard .pm-scroll { max-height: min(48vh, 380px); overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: rgba(240,98,146,0.2) transparent; padding-right: 4px; }
+    #pmCard .pm-scroll::-webkit-scrollbar { width: 4px; }
+    #pmCard .pm-scroll::-webkit-scrollbar-thumb { background: rgba(240,98,146,0.25); border-radius: 4px; }
+    #pmCard .pm-era {
+      font-size: 11px; font-weight: 700; color: #f06292;
+      letter-spacing: 0.06em; margin-bottom: 6px; font-family: system-ui, sans-serif; flex-shrink: 0;
+    }
+    #pmCard .pm-title {
+      font-size: 16px; font-weight: 800; color: #e1bee7;
+      margin-bottom: 10px; line-height: 1.4; text-shadow: 0 0 12px rgba(240,98,146,0.25); flex-shrink: 0;
+    }
+    #pmCard .pm-body {
+      font-size: 14.5px; line-height: 2; color: rgba(230,225,240,0.92);
+      white-space: pre-wrap; word-break: keep-all; letter-spacing: 0.04em;
+    }
+
+    /* ── Place-label Marker (HTML, KaiTi, golden glow) ── */
+    .wp-lbl {
+      font-family: "Kaiti SC","STKaiti","KaiTi","Songti SC","FangSong",serif;
+      font-size: 18px; font-weight: 700; line-height: 1.2;
+      color: #ffd166;
+      text-shadow: 0 0 7px #fff, 0 0 12px #fff, 0 1px 3px rgba(255,255,255,0.92);
+      white-space: nowrap; pointer-events: none; user-select: none;
+      transition: opacity 0.6s ease, filter 0.6s ease, transform 0.55s cubic-bezier(0.22,1,0.36,1);
+    }
+    .wp-lbl.wp-off { visibility: hidden; opacity: 0; filter: none; transform: translateY(0); }
+    .wp-lbl.wp-revealing { visibility: visible; opacity: 0; filter: blur(10px); transform: translateY(5px); }
+    .wp-lbl.wp-on { visibility: visible; opacity: 1; filter: blur(0); transform: translateY(0); }
+    .wp-lbl.wp-noprog { transition: none !important; }
+
+    /* ── Dynasty-map watermarks (large semi-transparent KaiTi) ── */
+    .dyn-wm {
+      font-family: "Kaiti SC","STKaiti","KaiTi","Songti SC",serif;
+      font-size: 28px; font-weight: 600; letter-spacing: 0.14em;
+      color: rgba(200,210,220,0.34);
+      text-shadow: 0 0 10px rgba(255,255,255,0.95), 0 0 18px rgba(255,255,255,0.85), 0 1px 2px rgba(255,255,255,0.8);
+      pointer-events: none; user-select: none; white-space: nowrap;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+    .dyn-wm.dyn-hidden { visibility: hidden; opacity: 0; }
   </style>
 </head>
 <body>
-  <div id="map"></div>
-  <div id="cinematicHud" aria-live="polite">
-    <div id="hudYear">公元 1084 年</div>
-    <div id="hudEvent">李清照生于章丘，书香门第中长成。</div>
+
+  <div id="tlHud" aria-live="polite">
+    <div id="tlYear">公元 1084 年</div>
+    <div id="tlEvent">李清照生于章丘，诗书自华。</div>
+    <div id="tlPoetryHint"></div>
   </div>
-  <div id="deed" aria-live="polite">
-    <div id="deedPlace"></div>
-    <div id="deedYear"></div>
-    <div id="deedBody"></div>
+  <div id="map" aria-label="李清照行迹地图"></div>
+  <div id="dkPop" aria-live="polite">
+    <div id="dkPlace" class="dk-place"></div>
+    <div id="dkYear" class="dk-year"></div>
+    <div id="dkBody" class="dk-body"></div>
   </div>
+  <div id="pmCard" aria-live="polite" aria-label="李清照作品">
+    <div class="pm-scroll" id="pmScroll"></div>
+  </div>
+
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" crossorigin=""></script>
   <script>
-    (function () {
-      const WAYPOINTS = [
-        { lng: 117.532344, lat: 36.685415, label: "章丘（出生地）", year: 1084, detail: "父格非官郓州教授。" },
-        { lng: 114.313904, lat: 34.802941, label: "开封", year: 1096, detail: "父格非官太学正，随父居京师。" },
-        { lng: 118.440962, lat: 36.778223, label: "益都", year: 1112, detail: "24岁至38岁间，家世与学养持续沉淀。" },
-        { lng: 118.802891, lat: 32.064735, label: "南京", year: 1128, detail: "南渡初期，离乱之中词境转深。" },
-        { lng: 120.586673, lat: 30.036519, label: "绍兴", year: 1132, detail: "迁徙渐稳，作品风格由清丽转沉郁。" },
-        { lng: 120.161693, lat: 30.280059, label: "杭州", year: 1155, detail: "晚岁寓居临安一带，词名流传后世。" },
-      ];
-      const EVENT_CUES = [
-        { year: 1084, text: "李清照生于章丘，书香门第中长成。" },
-        { year: 1101, text: "与赵明诚成婚，金石书画相契相知。" },
-        { year: 1127, text: "靖康之变，北宋覆亡，南渡序幕开启。" },
-        { year: 1128, text: "辗转江宁，家国离乱深刻进入词境。" },
-        { year: 1129, text: "赵明诚卒于建康，个人命运急转。" },
-        { year: 1132, text: "至越地后，行迹渐稳而词风益深。" },
-        { year: 1155, text: "晚岁定居临安附近，余韵入史。" },
-      ];
-      const SEGMENT_MS = [8000, 8000, 12000, 9000, 9000];
-      const PAUSE_MS = [1400, 1000, 1800, 1000, 1200, 1800];
-      const LOOP_GAP_MS = 3200;
-      const TRANSITION_YEAR = 1127;
-      const MIGRATION_URL = "data/trajectories.json";
+(function () {
+  "use strict";
 
-      const map = new maplibregl.Map({
-        container: "map",
-        style: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
-        center: [116.4, 33.2],
-        zoom: 5.7,
-        pitch: 55,
-        bearing: -8,
-        maxPitch: 85,
-        attributionControl: true,
+  /* ================================================================
+     CONSTANTS
+     ================================================================ */
+  const DYNASTY_URL    = "data/hartwell_dynasty_outlines.json";
+  const TRAJ_URL       = "data/trajectories.json";
+  const LIQZ_NAME      = "李清照";
+
+  const SONG_BLEND_LO  = 1125;
+  const SONG_BLEND_HI  = 1128;
+  const HIT_YEAR       = 1127;
+  const HIT_WINDOW     = 2.2;
+
+  const COMET_LEN      = 18;
+  const SEG_MS_BASE    = 5800;
+  const SEG_MS_SHORT   = 2000;
+  const SEG_MS_LONG    = 11000;
+
+  const DEED_MS        = 3400;
+  const DEED_MS_SHORT  = 1400;
+
+  const PANORAMA_EASE  = 3400;
+  const PANORAMA_HOLD  = 4600;
+  const LOOP_GAP_MS    = 2800;
+
+  const POEM_MS_MIN    = 8000;
+  const POEM_MS_MAX    = 16000;
+
+  const POETRY_TRIGGERS = [
+    { year: 1099, items: [
+      { t:"如梦令·常记溪亭日暮", e:"约 1099 年", b:"常记溪亭日暮，沉醉不知归路。兴尽晚回舟，误入藕花深处。争渡，争渡，惊起一滩鸥鹭。" },
+      { t:"如梦令·昨夜雨疏风骤", e:"约 1099 年", b:"昨夜雨疏风骤，浓睡不消残酒。试问卷帘人，却道海棠依旧。知否，知否？应是绿肥红瘦。" },
+    ]},
+    { year: 1101, items: [
+      { t:"醉花阴·薄雾浓云愁永昼", e:"约 1101—1120 年", b:"薄雾浓云愁永昼，瑞脑销金兽。佳节又重阳，玉枕纱厨，半夜凉初透。\n东篱把酒黄昏后，有暗香盈袖。莫道不销魂，帘卷西风，人比黄花瘦。" },
+    ]},
+    { year: 1127, items: [
+      { t:"夏日绝句", e:"1127 年", b:"生当作人杰，死亦为鬼雄。\n至今思项羽，不肯过江东。" },
+    ]},
+    { year: 1132, items: [
+      { t:"声声慢·寻寻觅觅", e:"约 1129—1132 年", b:"寻寻觅觅，冷冷清清，凄凄惨惨戚戚。乍暖还寒时候，最难将息。三杯两盏淡酒，怎敌他、晚来风急？雁过也，正伤心，却是旧时相识。\n满地黄花堆积。憔悴损，如今有谁堪摘？守着窗儿，独自怎生得黑？梧桐更兼细雨，到黄昏、点点滴滴。这次第，怎一个愁字了得！" },
+    ]},
+    { year: 1135, items: [
+      { t:"武陵春·春晚", e:"1135 年", b:"风住尘香花已尽，日晚倦梳头。物是人非事事休，欲语泪先流。\n闻说双溪春尚好，也拟泛轻舟。只恐双溪舴艋舟，载不动许多愁。" },
+    ]},
+  ];
+
+  const EVENTS = [
+    { y:1084, t:"李清照生于章丘，诗书自华。" },
+    { y:1101, t:"与赵明诚成婚，金石书画相契相知。" },
+    { y:1127, t:"靖康之变，北宋覆亡，南渡序幕开启。" },
+    { y:1129, t:"赵明诚卒于建康，清照孤旅深愁。" },
+    { y:1134, t:"整理旧藏与文稿，词风沉郁深婉。" },
+    { y:1155, t:"晚岁寓居临安附近，清照词名传后世。" },
+  ];
+
+  /* ================================================================
+     STATE
+     ================================================================ */
+  const S = {
+    map: null,
+    waypoints: [],
+    wYrs: [],         // yearStart for each waypoint
+    dynasty: null,
+    dynastyReady: false,
+    borderSplit: false,
+    simYear: 0,
+    walkLine: [],     // [[lng,lat]...] full walked path
+    cometHist: [],    // [[lng,lat]...] recent positions
+    wmMarkers: {},
+    wpMarkers: [],
+    poetryQueue: [],
+    poetryTimer: null,
+    poetrySeen: new Set(),
+    poetryPrevYf: null,
+    isFirstRun: true,
+  };
+
+  /* ================================================================
+     DOM refs
+     ================================================================ */
+  const dom = {
+    tlHud:   document.getElementById("tlHud"),
+    tlYear:  document.getElementById("tlYear"),
+    tlEvent: document.getElementById("tlEvent"),
+    tlHint:  document.getElementById("tlPoetryHint"),
+    dkPop:   document.getElementById("dkPop"),
+    dkPlace: document.getElementById("dkPlace"),
+    dkYear:  document.getElementById("dkYear"),
+    dkBody:  document.getElementById("dkBody"),
+    pmCard:  document.getElementById("pmCard"),
+    pmScroll: document.getElementById("pmScroll"),
+  };
+
+  /* ================================================================
+     UTILS
+     ================================================================ */
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function dist(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); }
+  function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+  function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function easeTo(opts) {
+    return new Promise(function (r) {
+      S.map.easeTo(Object.assign({ essential: true }, opts));
+      S.map.once("moveend", r);
+    });
+  }
+  function emptyFC() { return { type: "FeatureCollection", features: [] }; }
+  function setSrc(id, data) { var s = S.map.getSource(id); if (s) s.setData(data); }
+  function nearestEvent(y) {
+    var t = EVENTS[0].t;
+    for (var i = 0; i < EVENTS.length; i++) { if (EVENTS[i].y <= y) t = EVENTS[i].t; else break; }
+    return t;
+  }
+  function trimDetail(t) {
+    if (!t) return "";
+    return String(t).split(/\n/).map(function (l) {
+      return l.replace(/^[,，、\s]+/, "").trim();
+    }).filter(Boolean).join("\n");
+  }
+
+  /* ================================================================
+     DEED POPUP
+     ================================================================ */
+  function showDeed(idx) {
+    var w = S.waypoints[idx];
+    dom.dkPlace.textContent = w.label || "";
+    dom.dkYear.textContent = "公元 " + w.year + " 年";
+    dom.dkBody.textContent = trimDetail(w.detail) || "行经此地，史志略载。";
+    dom.dkPop.classList.add("show");
+  }
+  function hideDeed() { dom.dkPop.classList.remove("show"); }
+
+  /* ================================================================
+     TIMELINE HUD
+     ================================================================ */
+  function updateTlHud(y) {
+    var yi = Math.floor(y);
+    dom.tlYear.textContent = "公元 " + yi + " 年";
+    dom.tlEvent.textContent = nearestEvent(yi);
+    dom.tlHud.classList.toggle("transition-hit", Math.abs(y - HIT_YEAR) <= HIT_WINDOW);
+  }
+
+  /* ================================================================
+     POETRY CARD
+     ================================================================ */
+  function clearPoemTimer() {
+    if (S.poetryTimer != null) { clearTimeout(S.poetryTimer); S.poetryTimer = null; }
+  }
+  function hidePoemCard() {
+    dom.pmCard.classList.remove("visible");
+    dom.tlHint.classList.remove("active");
+  }
+  function renderPoemCard(item) {
+    dom.pmScroll.textContent = "";
+    var e = document.createElement("div"); e.className = "pm-era"; e.textContent = item.e || ""; dom.pmScroll.appendChild(e);
+    var t = document.createElement("div"); t.className = "pm-title"; t.textContent = item.t || ""; dom.pmScroll.appendChild(t);
+    var b = document.createElement("div"); b.className = "pm-body"; b.textContent = item.b || ""; dom.pmScroll.appendChild(b);
+    dom.pmCard.classList.add("visible");
+    dom.tlHint.textContent = "✦ 正展：" + (item.t || "");
+    dom.tlHint.classList.add("active");
+  }
+  function showNextPoem() {
+    clearPoemTimer();
+    if (!S.poetryQueue.length) { hidePoemCard(); return; }
+    var item = S.poetryQueue.shift();
+    renderPoemCard(item);
+    var ms = POEM_MS_MIN + Math.random() * (POEM_MS_MAX - POEM_MS_MIN);
+    S.poetryTimer = setTimeout(function () { S.poetryTimer = null; showNextPoem(); }, ms);
+  }
+  function tryShowPoetry() {
+    if (!S.poetryQueue.length) return;
+    if (dom.pmCard.classList.contains("visible")) return;
+    showNextPoem();
+  }
+  function enqueuePoetryCrossing(prevYf, yf) {
+    if (prevYf == null || yf <= prevYf) return;
+    for (var i = 0; i < POETRY_TRIGGERS.length; i++) {
+      var trig = POETRY_TRIGGERS[i];
+      if (trig.year > prevYf && trig.year <= yf && !S.poetrySeen.has(trig.year)) {
+        S.poetrySeen.add(trig.year);
+        for (var j = 0; j < trig.items.length; j++) S.poetryQueue.push(trig.items[j]);
+      }
+    }
+    tryShowPoetry();
+  }
+  function unfirePoetryBeyond(yf) {
+    for (var i = 0; i < POETRY_TRIGGERS.length; i++) {
+      if (POETRY_TRIGGERS[i].year > yf) S.poetrySeen.delete(POETRY_TRIGGERS[i].year);
+    }
+  }
+  function abortPoetry() {
+    clearPoemTimer();
+    S.poetryQueue.length = 0;
+    hidePoemCard();
+  }
+
+  /* ================================================================
+     DYNASTY OVERLAYS
+     ================================================================ */
+  function snapHasBorderSplit(sn) {
+    return !!(sn && sn.borderHard && sn.borderHard.features && sn.borderHard.features.length &&
+              sn.borderSoft && sn.borderSoft.features && sn.borderSoft.features.length);
+  }
+  function snapHasChinaFade(sn) {
+    return !!(sn && sn.borderChinaFade && sn.borderChinaFade.features && sn.borderChinaFade.features.length);
+  }
+  function addDynastyLayers(bundle) {
+    var ns = bundle.snapshots.chin1080, ss = bundle.snapshots.chin1200;
+    if (!ns || !ss) return;
+    var nGeo = ns.geo, sGeo = ss.geo;
+    if (!nGeo || !sGeo || !nGeo.features || !sGeo.features) return;
+    var bis = snapHasBorderSplit(ns) && snapHasBorderSplit(ss);
+    S.borderSplit = bis;
+
+    S.map.addSource("north-geo", { type:"geojson", data:nGeo });
+    S.map.addSource("south-geo", { type:"geojson", data:sGeo });
+
+    S.map.addLayer({ id:"north-fill", type:"fill", source:"north-geo",
+      paint:{ "fill-color":["coalesce",["get","fill"],"#78909c"], "fill-opacity":0.085 } });
+    if (bis && snapHasChinaFade(ns)) {
+      S.map.addSource("north-cfade", { type:"geojson", data:ns.borderChinaFade });
+      S.map.addLayer({ id:"north-cfade-fill", type:"fill", source:"north-cfade",
+        paint:{ "fill-color":"#9575cd", "fill-opacity":0.055 } });
+    }
+    if (bis) {
+      S.map.addSource("north-bh", { type:"geojson", data:ns.borderHard });
+      S.map.addSource("north-bs", { type:"geojson", data:ns.borderSoft });
+      S.map.addLayer({ id:"north-line-soft", type:"line", source:"north-bs",
+        layout:{"line-cap":"round","line-join":"round"},
+        paint:{"line-color":"#90a4ae","line-width":5,"line-blur":2,"line-opacity":0.14} });
+      S.map.addLayer({ id:"north-line-hard", type:"line", source:"north-bh",
+        layout:{"line-cap":"round","line-join":"round"},
+        paint:{"line-color":"#90a4ae","line-width":1.35,"line-blur":0.25,"line-opacity":0.52} });
+    } else {
+      S.map.addLayer({ id:"north-line", type:"line", source:"north-geo",
+        paint:{"line-color":["coalesce",["get","stroke"],"#78909c"],"line-width":["coalesce",["get","weight"],1.2],"line-opacity":0.52} });
+    }
+
+    S.map.addLayer({ id:"south-fill", type:"fill", source:"south-geo",
+      paint:{ "fill-color":["coalesce",["get","fill"],"#78909c"], "fill-opacity":0 } });
+    if (bis && snapHasChinaFade(ss)) {
+      S.map.addSource("south-cfade", { type:"geojson", data:ss.borderChinaFade });
+      S.map.addLayer({ id:"south-cfade-fill", type:"fill", source:"south-cfade",
+        paint:{ "fill-color":"#7986cb", "fill-opacity":0 } });
+    }
+    if (bis) {
+      S.map.addSource("south-bh", { type:"geojson", data:ss.borderHard });
+      S.map.addSource("south-bs", { type:"geojson", data:ss.borderSoft });
+      S.map.addLayer({ id:"south-line-soft", type:"line", source:"south-bs",
+        layout:{"line-cap":"round","line-join":"round"},
+        paint:{"line-color":"#90a4ae","line-width":5,"line-blur":2,"line-opacity":0} });
+      S.map.addLayer({ id:"south-line-hard", type:"line", source:"south-bh",
+        layout:{"line-cap":"round","line-join":"round"},
+        paint:{"line-color":"#90a4ae","line-width":1.35,"line-blur":0.25,"line-opacity":0} });
+    } else {
+      S.map.addLayer({ id:"south-line", type:"line", source:"south-geo",
+        paint:{"line-color":["coalesce",["get","stroke"],"#78909c"],"line-width":["coalesce",["get","weight"],1.2],"line-opacity":0} });
+    }
+    S.dynastyReady = true;
+  }
+
+  function blendDynasty(y) {
+    if (!S.dynastyReady) return;
+    var u = clamp((y - SONG_BLEND_LO) / (SONG_BLEND_HI - SONG_BLEND_LO), 0, 1);
+    var fMax = 0.085, lMax = 0.58;
+    var map = S.map;
+    if (map.getLayer("north-fill")) map.setPaintProperty("north-fill","fill-opacity", fMax * (1 - u));
+    if (map.getLayer("south-fill")) map.setPaintProperty("south-fill","fill-opacity", fMax * u);
+    var nL = lMax * (1 - u) + 0.12 * u, sL = 0.12 * (1 - u) + lMax * u;
+    if (S.borderSplit) {
+      if (map.getLayer("north-line-hard")) map.setPaintProperty("north-line-hard","line-opacity", nL * 0.96);
+      if (map.getLayer("north-line-soft")) map.setPaintProperty("north-line-soft","line-opacity", nL * 0.24);
+      if (map.getLayer("south-line-hard")) map.setPaintProperty("south-line-hard","line-opacity", sL * 0.96);
+      if (map.getLayer("south-line-soft")) map.setPaintProperty("south-line-soft","line-opacity", sL * 0.24);
+      if (map.getLayer("north-cfade-fill")) map.setPaintProperty("north-cfade-fill","fill-opacity", 0.055 * (1 - u) + 0.02 * u);
+      if (map.getLayer("south-cfade-fill")) map.setPaintProperty("south-cfade-fill","fill-opacity", 0.02 * (1 - u) + 0.055 * u);
+    } else {
+      if (map.getLayer("north-line")) map.setPaintProperty("north-line","line-opacity", nL);
+      if (map.getLayer("south-line")) map.setPaintProperty("south-line","line-opacity", sL);
+    }
+    updateWatermarks(y, u);
+  }
+
+  /* ================================================================
+     WATERMARKS (regime labels)
+     ================================================================ */
+  function findFcCenterByDyn(fc, dk) {
+    if (!fc || !fc.features) return null;
+    for (var i = 0; i < fc.features.length; i++) {
+      var f = fc.features[i];
+      if (f.properties && f.properties.dynastyKey === dk && f.geometry && f.geometry.coordinates) {
+        return geomCenter(f.geometry.coordinates);
+      }
+    }
+    return null;
+  }
+  function geomCenter(coords) {
+    if (!coords || !coords.length) return null;
+    if (typeof coords[0] === "number") return coords;
+    var sums = [0,0], cnt = 0;
+    (function walk(arr) {
+      for (var i = 0; i < arr.length; i++) {
+        if (typeof arr[i] === "number") { sums[0] += arr[0]; sums[1] += arr[1]; cnt++; return; }
+        walk(arr[i]);
+      }
+    })(coords);
+    return cnt ? [sums[0] / cnt, sums[1] / cnt] : coords[0] && coords[0][0] ? coords[0][0] : coords[0];
+  }
+  function addWatermarkMarkers(bundle) {
+    ["bei","liao","xixia","nan","jin"].forEach(function (k) { if (S.wmMarkers[k]) { S.wmMarkers[k].remove(); delete S.wmMarkers[k]; } });
+    if (!bundle || !bundle.snapshots) return;
+    var rows = [
+      { id:"bei", snap:"chin1080", dk:"song dynasty", text:"北宋" },
+      { id:"liao", snap:"chin1080", dk:"liao dynasty", text:"辽" },
+      { id:"xixia1", snap:"chin1080", dk:"xixia", text:"西夏" },
+      { id:"nan", snap:"chin1200", dk:"song dynasty", text:"南宋" },
+      { id:"jin", snap:"chin1200", dk:"jin dynasty", text:"金" },
+      { id:"xixia2", snap:"chin1200", dk:"xixia", text:"西夏" },
+    ];
+    rows.forEach(function (r) {
+      var sn = bundle.snapshots[r.snap] && bundle.snapshots[r.snap].geo;
+      var pt = findFcCenterByDyn(sn, r.dk);
+      if (!pt) return;
+      var el = document.createElement("div");
+      el.className = "dyn-wm dyn-hidden";
+      el.textContent = r.text;
+      var mk = new maplibregl.Marker({ element:el, anchor:"center" }).setLngLat(pt).addTo(S.map);
+      S.wmMarkers[r.id] = mk;
+    });
+  }
+  function setWmVis(id, v) {
+    var mk = S.wmMarkers[id];
+    if (!mk) return;
+    var el = mk.getElement();
+    if (v) el.classList.remove("dyn-hidden"); else el.classList.add("dyn-hidden");
+  }
+  function updateWatermarks(y, u) {
+    var showBei = y < 1127 && u < 0.48;
+    var showLiao = y <= 1125 && u < 0.45;
+    var showNan = y >= 1126 && u > 0.42;
+    var showJin  = y >= 1126 && u > 0.38;
+    var showXx  = y >= 960 && y < 1227;
+    setWmVis("bei", showBei);
+    setWmVis("liao", showLiao);
+    setWmVis("xixia1", showXx);
+    setWmVis("nan", showNan);
+    setWmVis("jin", showJin);
+    setWmVis("xixia2", showXx);
+  }
+
+  /* ================================================================
+     PLACE LABEL MARKERS
+     ================================================================ */
+  function initPlaceLabels() {
+    S.wpMarkers.forEach(function (m) { m.remove(); });
+    S.wpMarkers.length = 0;
+    S.waypoints.forEach(function (w) {
+      var el = document.createElement("div");
+      el.className = "wp-lbl wp-off";
+      el.textContent = w.label;
+      var mk = new maplibregl.Marker({ element:el, anchor:"bottom", offset:[0,-6] })
+        .setLngLat([w.lng, w.lat]).addTo(S.map);
+      S.wpMarkers.push(mk);
+    });
+  }
+  function hideAllWpLabels() {
+    S.wpMarkers.forEach(function (m) {
+      var el = m.getElement();
+      el.classList.add("wp-noprog");
+      el.classList.remove("wp-on","wp-revealing"); el.classList.add("wp-off");
+    });
+    requestAnimationFrame(function () {
+      S.wpMarkers.forEach(function (m) { m.getElement().classList.remove("wp-noprog"); });
+    });
+  }
+  function revealWpLabel(idx) {
+    if (idx < 0 || idx >= S.wpMarkers.length) return;
+    var el = S.wpMarkers[idx].getElement();
+    el.classList.add("wp-noprog");
+    el.classList.remove("wp-off","wp-on"); el.classList.add("wp-revealing");
+    requestAnimationFrame(function () {
+      el.classList.remove("wp-noprog");
+      void el.offsetWidth;
+      el.classList.remove("wp-revealing"); el.classList.add("wp-on");
+    });
+  }
+
+  /* ================================================================
+     ROUTE RENDERING (line + comet + current-point)
+     ================================================================ */
+  function updateWalkLineSrc() {
+    if (!S.map.getSource("walked-line")) return;
+    var coords = S.walkLine;
+    if (coords.length < 2) { setSrc("walked-line", emptyFC()); return; }
+    var fc = { type:"FeatureCollection", features:[
+      { type:"Feature", properties:{}, geometry:{ type:"LineString", coordinates:coords.slice() } }
+    ]};
+    setSrc("walked-line", fc);
+  }
+  function appendWalkSeg(fromLng, fromLat, toLng, toLat) {
+    var c = S.walkLine;
+    if (!c.length) { c.push([fromLng, fromLat]); }
+    var last = c[c.length-1];
+    if (dist(last, [fromLng, fromLat]) > 1e-8) c.push([fromLng, fromLat]);
+    if (dist(c[c.length-1], [toLng, toLat]) > 1e-8) c.push([toLng, toLat]);
+    updateWalkLineSrc();
+  }
+  function buildCometFc(h) {
+    var n = h.length; if (!n) return emptyFC();
+    var feats = [];
+    for (var i = 0; i < n; i++) {
+      var u = n === 1 ? 1 : i / (n - 1);
+      var head = i === n - 1 ? 1 : 0;
+      var o = head ? clamp(0.06 + 0.32 * u + 0.34, 0, 0.94) : 0.06 + 0.32 * u;
+      var r = 1.6 + 4.8 * u; if (head) r = Math.max(r + 1.1, 6.4);
+      feats.push({ type:"Feature", properties:{ o:o, r:r, head:head },
+        geometry:{ type:"Point", coordinates:h[i].slice() } });
+    }
+    return { type:"FeatureCollection", features:feats };
+  }
+  function pushComet(lng, lat) {
+    var h = S.cometHist;
+    var last = h[h.length-1];
+    if (last && Math.hypot(last[0]-lng, last[1]-lat) < 1e-9) return;
+    h.push([lng, lat]);
+    while (h.length > COMET_LEN) h.shift();
+    setSrc("mover-comet", buildCometFc(h));
+  }
+  function updateMoverPoint(lng, lat) {
+    setSrc("mover-point", { type:"FeatureCollection", features:[
+      { type:"Feature", properties:{}, geometry:{ type:"Point", coordinates:[lng, lat] } }
+    ]});
+  }
+
+  /* ================================================================
+     BASEMAP LABEL TRIM
+     ================================================================ */
+  function trimBasemapLabels() {
+    var st = S.map.getStyle();
+    if (!st || !st.layers) return;
+    st.layers.forEach(function (ly) {
+      if (ly.type !== "symbol") return;
+      var idl = ly.id.toLowerCase();
+      var hide = idl.includes("place") || idl.includes("settlement") ||
+        idl.includes("poi") || idl.includes("road") || idl.includes("water") ||
+        idl.includes("country_label") || idl.includes("state_label") ||
+        idl.includes("label") || idl.includes("housenumber") ||
+        idl.includes("airport") || idl.includes("park") || idl.includes("natural");
+      if (hide) { try { S.map.setLayoutProperty(ly.id, "visibility", "none"); } catch (_) {} }
+    });
+  }
+
+  /* ================================================================
+     ANIMATION (per-segment + deed at each waypoint)
+     ================================================================ */
+  function animateSegment(a, b, segMs) {
+    return new Promise(function (resolve) {
+      var t0 = performance.now();
+      var midLng = (a.lng + b.lng) / 2, midLat = (a.lat + b.lat) / 2;
+      var sp = dist([a.lng, a.lat], [b.lng, b.lat]);
+      var z = sp > 2.2 ? 5.55 : sp > 1.0 ? 6.1 : 6.65;
+      easeTo({ center:[midLng, midLat], zoom:z, pitch:clamp(62 - S.walkLine.length * 0.25, 38, 70), bearing:mapGetBearing(), duration:900 }).then(function () {
+        var prevPoetryYf = S.poetryPrevYf == null ? a.year : S.poetryPrevYf;
+        function frame() {
+          var u = clamp((performance.now() - t0) / segMs, 0, 1);
+          var t = ease(u);
+          var lng = lerp(a.lng, b.lng, t), lat = lerp(a.lat, b.lat, t);
+          var sy = lerp(a.year, b.year, t);
+          S.simYear = sy;
+          updateTlHud(sy);
+          blendDynasty(sy);
+          pushComet(lng, lat);
+          updateMoverPoint(lng, lat);
+
+          var yf = Math.floor(sy);
+          if (prevPoetryYf != null && yf > prevPoetryYf) {
+            enqueuePoetryCrossing(prevPoetryYf, yf);
+          }
+          prevPoetryYf = yf;
+
+          if (u < 1) { requestAnimationFrame(frame); } else {
+            pushComet(b.lng, b.lat);
+            updateMoverPoint(b.lng, b.lat);
+            S.poetryPrevYf = yf;
+            appendWalkSeg(a.lng, a.lat, b.lng, b.lat);
+            S.simYear = b.year;
+            blendDynasty(b.year);
+            resolve();
+          }
+        }
+        requestAnimationFrame(frame);
       });
-      map.addControl(new maplibregl.NavigationControl({ visualizePitch: true }), "top-right");
+    });
+  }
+  function mapGetBearing() { try { return S.map.getBearing(); } catch (_) { return 0; } }
 
-      const hud = document.getElementById("cinematicHud");
-      const hudYear = document.getElementById("hudYear");
-      const hudEvent = document.getElementById("hudEvent");
-      const deed = document.getElementById("deed");
-      const deedPlace = document.getElementById("deedPlace");
-      const deedYear = document.getElementById("deedYear");
-      const deedBody = document.getElementById("deedBody");
+  async function runSequence() {
+    /* Reset visual state */
+    hidePoemCard(); clearPoemTimer(); abortPoetry();
+    S.poetrySeen.clear(); S.poetryPrevYf = null;
+    hideDeed(); hideAllWpLabels();
+    S.walkLine.length = 0; updateWalkLineSrc();
+    S.cometHist.length = 0; setSrc("mover-comet", emptyFC());
+    setSrc("mover-point", emptyFC());
 
-      const walked = [];
-      let walkedPhase = 0;
-      let walkedRaf = null;
-      let migrationBuckets = null;
-      let migrationSegments = [];
-      let migrationRaf = null;
-      let migrationPhase = 0;
-      let playbackYear = WAYPOINTS[0].year;
-      let transitionPulseDone = false;
-      const cometTrail = [];
+    var w = S.waypoints;
+    var y0 = w[0].year;
+    S.simYear = y0;
+    updateTlHud(y0);
+    blendDynasty(y0);
 
-      function clamp(v, lo, hi) { return Math.min(hi, Math.max(lo, v)); }
-      function lerp(a, b, t) { return a + (b - a) * t; }
-      function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
-      function dist(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); }
+    /* Intro zoom to birth city */
+    await easeTo({ center:[w[0].lng, w[0].lat], zoom:10.2, pitch:78, bearing:38, duration:3600 });
+    pushComet(w[0].lng, w[0].lat);
+    updateMoverPoint(w[0].lng, w[0].lat);
+    S.walkLine.push([w[0].lng, w[0].lat]); updateWalkLineSrc();
+    revealWpLabel(0);
+    showDeed(0);
+    await wait(DEED_MS);
+    hideDeed();
 
-      function nearestEvent(year) {
-        let text = EVENT_CUES[0].text;
-        for (let i = 0; i < EVENT_CUES.length; i++) {
-          if (EVENT_CUES[i].year <= year) text = EVENT_CUES[i].text;
-          else break;
-        }
-        return text;
-      }
+    /* Rise to overview */
+    await easeTo({ center:[117.2,35.4], zoom:6.2, pitch:62, bearing:-18, duration:2800 });
 
-      function updateHud(yearFloat) {
-        playbackYear = yearFloat;
-        const year = Math.floor(yearFloat);
-        hudYear.textContent = "公元 " + year + " 年";
-        hudEvent.textContent = nearestEvent(year);
-        hud.classList.toggle("hit", Math.abs(yearFloat - TRANSITION_YEAR) <= 2.2);
-      }
+    /* Loop through segments */
+    for (var i = 0; i < w.length - 1; i++) {
+      var a = w[i], b = w[i+1];
+      var yGap = b.year - a.year;
+      var segMs = yGap < 2 ? SEG_MS_SHORT : yGap > 10 ? SEG_MS_LONG : SEG_MS_BASE;
+      await animateSegment(a, b, segMs);
+      revealWpLabel(i + 1);
+      var deedMs = (i + 1 < w.length - 1 && w[i+1].year === w[i+2].year) ? DEED_MS_SHORT : DEED_MS;
+      showDeed(i + 1);
+      await wait(deedMs);
+      hideDeed();
+    }
 
-      function showDeed(wp) {
-        deedPlace.textContent = wp.label;
-        deedYear.textContent = "公元 " + wp.year + " 年";
-        deedBody.textContent = wp.detail;
-        deed.classList.add("show");
-      }
-      function hideDeed() { deed.classList.remove("show"); }
+    /* Final zoom onto last city */
+    var lw = w[w.length - 1];
+    await easeTo({ center:[lw.lng, lw.lat], zoom:8.8, pitch:58, bearing:14, duration:2400 });
+    pushComet(lw.lng, lw.lat);
+    updateMoverPoint(lw.lng, lw.lat);
+    revealWpLabel(w.length - 1);
+    showDeed(w.length - 1);
+    await wait(DEED_MS);
+    hideDeed();
+    await wait(600);
 
-      function emptyFC() { return { type: "FeatureCollection", features: [] }; }
+    /* Panorama pull-out */
+    var pts = w.map(function (wp) { return [wp.lng, wp.lat]; });
+    var bnd = [[Infinity,Infinity],[-Infinity,-Infinity]];
+    pts.forEach(function (p) { bnd[0][0]=Math.min(bnd[0][0],p[0]); bnd[0][1]=Math.min(bnd[0][1],p[1]); bnd[1][0]=Math.max(bnd[1][0],p[0]); bnd[1][1]=Math.max(bnd[1][1],p[1]); });
+    bnd[0][0] -= 0.5; bnd[0][1] -= 0.5; bnd[1][0] += 0.5; bnd[1][1] += 0.5;
+    await new Promise(function (r) {
+      S.map.once("moveend", r);
+      S.map.fitBounds(bnd, { padding:{top:80, bottom:100, left:30, right:30}, maxZoom:6.05, pitch:26, bearing:-12, duration:PANORAMA_EASE, essential:true });
+    });
+    await wait(PANORAMA_HOLD);
+  }
 
-      function setSource(id, data) {
-        const src = map.getSource(id);
-        if (src) src.setData(data);
-      }
+  /* ================================================================
+     MAIN INIT
+     ================================================================ */
+  async function init() {
+    /* Fetch trajectories & extract 李清照 waypoints */
+    var tr, dy;
+    try { var r1 = await fetch(TRAJ_URL); tr = r1.ok ? await r1.json() : null; } catch (_) { tr = null; }
+    if (!tr || !tr.poets) { document.body.textContent = "加载轨迹数据失败"; return; }
+    var p = tr.poets.find(function (x) { return x.name === LIQZ_NAME; });
+    if (!p || !p.waypoints || !p.waypoints.length) { document.body.textContent = "未找到李清照航点数据"; return; }
 
-      function addWalkedPoint(lng, lat) {
-        const last = walked[walked.length - 1];
-        if (last && last[0] === lng && last[1] === lat) return;
-        walked.push([lng, lat]);
-      }
-      function resetCometTrail() { cometTrail.length = 0; }
-      function pushCometTrail(lng, lat) {
-        const last = cometTrail[cometTrail.length - 1];
-        if (last && last[0] === lng && last[1] === lat) return;
-        cometTrail.push([lng, lat]);
-        while (cometTrail.length > 16) cometTrail.shift();
-      }
-      function renderCometTrail() {
-        if (!cometTrail.length) {
-          setSource("hero-comet", emptyFC());
-          return;
-        }
-        const n = cometTrail.length;
-        const feats = [];
-        for (let i = 0; i < n; i++) {
-          const u = n === 1 ? 1 : i / (n - 1);
-          const isHead = i === n - 1 ? 1 : 0;
-          feats.push({
-            type: "Feature",
-            properties: {
-              r: isHead ? 7.4 : 2 + 4.1 * u,
-              o: isHead ? 0.96 : 0.1 + 0.58 * u,
-              head: isHead,
-            },
-            geometry: { type: "Point", coordinates: cometTrail[i] },
-          });
-        }
-        setSource("hero-comet", { type: "FeatureCollection", features: feats });
-      }
+    S.waypoints = p.waypoints.map(function (wp) {
+      var label = String(wp.place || "").replace(/\(出生地\)/, "").trim();
+      return {
+        lng: wp.lng, lat: wp.lat,
+        year: wp.yearStart, yearEnd: wp.yearEnd,
+        label: label, detail: String(wp.detail_text || ""),
+      };
+    });
+    S.wYrs = S.waypoints.map(function (w) { return w.year; });
 
-      function polyMetric(coords) {
-        const lens = [];
-        let total = 0;
-        for (let i = 0; i < coords.length - 1; i++) {
-          const d = dist(coords[i], coords[i + 1]);
-          lens.push(d); total += d;
-        }
-        return { lens, total };
-      }
+    /* Fetch dynasty bundle */
+    try { var r2 = await fetch(DYNASTY_URL); dy = r2.ok ? await r2.json() : null; } catch (_) { dy = null; }
+    S.dynasty = dy;
 
-      function pointOnPolyline(coords, lens, s) {
-        if (coords.length < 2 || lens.length === 0) return coords[0] || [0, 0];
-        let t = s; let acc = 0;
-        for (let i = 0; i < lens.length; i++) {
-          if (acc + lens[i] >= t) {
-            const r = lens[i] < 1e-8 ? 1 : (t - acc) / lens[i];
-            return [lerp(coords[i][0], coords[i + 1][0], r), lerp(coords[i][1], coords[i + 1][1], r)];
-          }
-          acc += lens[i];
-        }
-        return coords[coords.length - 1];
-      }
+    /* Build MapLibre map */
+    S.map = new maplibregl.Map({
+      container: "map",
+      style: "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json",
+      center: [S.waypoints[0].lng, S.waypoints[0].lat],
+      zoom: 5.4, pitch: 0, bearing: 0, maxPitch: 85,
+      attributionControl: true,
+    });
 
-      function tickWalked(now) {
-        const met = polyMetric(walked);
-        if (met.total < 1e-6) { walkedRaf = requestAnimationFrame(tickWalked); return; }
-        const last = tickWalked._last || now;
-        const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
-        tickWalked._last = now;
-        walkedPhase = (walkedPhase + 0.046 * dt) % 1;
-        const count = clamp(Math.round(met.total / 0.16), 56, 420);
-        const feats = [];
-        for (let i = 0; i < count; i++) {
-          const u = (walkedPhase + i / count) % 1;
-          const p = pointOnPolyline(walked, met.lens, u * met.total);
-          feats.push({ type: "Feature", properties: {}, geometry: { type: "Point", coordinates: p } });
-        }
-        setSource("hero-flow", { type: "FeatureCollection", features: feats });
-        walkedRaf = requestAnimationFrame(tickWalked);
-      }
-      tickWalked._last = 0;
+    S.map.addControl(new maplibregl.NavigationControl({ visualizePitch:true }), "top-right");
 
-      function buildMigrationBuckets(data) {
-        const m = new Map();
-        if (!data || !Array.isArray(data.poets)) return m;
-        for (const poet of data.poets) {
-          if (!poet || poet.name === "李清照" || !Array.isArray(poet.waypoints)) continue;
-          for (let i = 0; i < poet.waypoints.length - 1; i++) {
-            const a = poet.waypoints[i], b = poet.waypoints[i + 1];
-            if (!a || !b || typeof a.lng !== "number" || typeof a.lat !== "number" || typeof b.lng !== "number" || typeof b.lat !== "number") continue;
-            const year = Math.floor(typeof b.yearStart === "number" ? b.yearStart : (typeof a.yearEnd === "number" ? a.yearEnd : a.yearStart));
-            if (!isFinite(year) || year < 980 || year > 1220) continue;
-            const south = a.lat - b.lat;
-            if (a.lat < 31 || south < 0.22 || dist([a.lng, a.lat], [b.lng, b.lat]) < 0.42) continue;
-            if (!m.has(year)) m.set(year, []);
-            m.get(year).push({ a: [a.lng, a.lat], b: [b.lng, b.lat], o: clamp(0.35 + south * 0.65, 0.2, 1) });
-          }
-        }
-        return m;
-      }
+    await new Promise(function (r) { S.map.once("load", r); });
 
-      function refreshMigrationSegments(yearFloat) {
-        if (!migrationBuckets) return;
-        const y = Math.floor(yearFloat);
-        const yLo = Math.max(960, y - 32);
-        const segs = [];
-        for (let yy = yLo; yy <= y; yy++) {
-          const rows = migrationBuckets.get(yy);
-          if (!rows) continue;
-          const fade = 1 - (y - yy) / 32;
-          for (const r of rows) {
-            segs.push({ a: r.a, b: r.b, o: r.o * clamp(fade, 0.08, 1) });
-            if (segs.length >= 260) break;
-          }
-          if (segs.length >= 260) break;
-        }
-        migrationSegments = segs;
-      }
+    /* Add dynasty layers */
+    if (dy && dy.snapshots) { addDynastyLayers(dy); addWatermarkMarkers(dy); }
 
-      function tickMigration(now) {
-        if (!migrationSegments.length) { migrationRaf = requestAnimationFrame(tickMigration); return; }
-        const last = tickMigration._last || now;
-        const dt = Math.min(0.1, Math.max(0, (now - last) / 1000));
-        tickMigration._last = now;
-        const boost = clamp(1 - Math.abs(playbackYear - TRANSITION_YEAR) / 3.2, 0, 1);
-        migrationPhase = (migrationPhase + (0.022 * (1 + boost * 0.55)) * dt) % 1;
-        const maxN = Math.round(280 * (1 + boost * 0.42));
-        const n = clamp(Math.max(120, migrationSegments.length), 120, maxN);
-        const feats = [];
-        for (let i = 0; i < n; i++) {
-          const seg = migrationSegments[i % migrationSegments.length];
-          const t = (migrationPhase + i / n) % 1;
-          const p = [lerp(seg.a[0], seg.b[0], t), lerp(seg.a[1], seg.b[1], t)];
-          feats.push({
-            type: "Feature",
-            properties: { o: clamp(seg.o * (0.9 + boost * 0.42), 0.14, 0.84), hot: boost > 0.2 ? 1 : 0 },
-            geometry: { type: "Point", coordinates: p },
-          });
-        }
-        setSource("era-flow", { type: "FeatureCollection", features: feats });
-        migrationRaf = requestAnimationFrame(tickMigration);
-      }
-      tickMigration._last = 0;
+    /* Add route sources + layers (above dynasty) */
+    S.map.addSource("walked-line", { type:"geojson", data:emptyFC() });
+    S.map.addLayer({ id:"walked-line-layer", type:"line", source:"walked-line",
+      layout:{"line-cap":"round","line-join":"round"},
+      paint:{"line-color":"#f06292","line-width":3.2,"line-opacity":0.44,"line-blur":0.6} });
+    S.map.addLayer({ id:"walked-line-glow", type:"line", source:"walked-line",
+      layout:{"line-cap":"round","line-join":"round"},
+      paint:{"line-color":"#f06292","line-width":9,"line-opacity":0.12,"line-blur":2.4} });
 
-      function wait(ms) { return new Promise((r) => setTimeout(r, ms)); }
-      function easeTo(opts) { return new Promise((r) => { map.easeTo(Object.assign({ essential: true }, opts)); map.once("moveend", r); }); }
-      async function transitionPulse(center) {
-        await easeTo({
-          center,
-          zoom: map.getZoom() + 0.35,
-          pitch: clamp(map.getPitch() + 5, 0, 80),
-          bearing: map.getBearing() - 4,
-          duration: 540,
-        });
-        await easeTo({
-          center,
-          zoom: map.getZoom() - 0.42,
-          pitch: clamp(map.getPitch() - 4, 0, 80),
-          bearing: map.getBearing() + 3,
-          duration: 620,
-        });
-      }
+    S.map.addSource("mover-comet", { type:"geojson", data:emptyFC() });
+    S.map.addLayer({ id:"mover-comet-circles", type:"circle", source:"mover-comet",
+      paint:{
+        "circle-radius":["get","r"],
+        "circle-color":["case",["==",["get","head"],1],"#ff5d73","#90a4ae"],
+        "circle-opacity":["get","o"],
+        "circle-stroke-width":["case",["==",["get","head"],1],1.2,0.5],
+        "circle-stroke-color":["case",["==",["get","head"],1],"rgba(255,255,255,0.78)","rgba(255,255,255,0.40)"],
+        "circle-stroke-opacity":["get","o"],
+      } });
 
-      async function animateSegment(a, b, ms) {
-        const t0 = performance.now();
-        const midLng = (a.lng + b.lng) / 2;
-        const midLat = (a.lat + b.lat) / 2;
-        const span = dist([a.lng, a.lat], [b.lng, b.lat]);
-        const z = span > 2.2 ? 5.55 : span > 1 ? 6.1 : 6.65;
-        await easeTo({ center: [midLng, midLat], zoom: z, pitch: 62, bearing: -12, duration: 900 });
-        await new Promise((resolve) => {
-          function frame() {
-            const u = clamp((performance.now() - t0) / ms, 0, 1);
-            const t = ease(u);
-            const lng = lerp(a.lng, b.lng, t);
-            const lat = lerp(a.lat, b.lat, t);
-            const y = lerp(a.year, b.year, t);
-            updateHud(y);
-            refreshMigrationSegments(y);
-            addWalkedPoint(lng, lat);
-            pushCometTrail(lng, lat);
-            renderCometTrail();
-            if (u < 1) requestAnimationFrame(frame);
-            else resolve();
-          }
-          requestAnimationFrame(frame);
-        });
-      }
+    S.map.addSource("mover-point", { type:"geojson", data:emptyFC() });
+    S.map.addLayer({ id:"mover-point-c", type:"circle", source:"mover-point",
+      paint:{"circle-radius":7.8,"circle-color":"#ff6b8d","circle-opacity":0.92,
+        "circle-stroke-width":2.2,"circle-stroke-color":"#fff","circle-stroke-opacity":0.86} });
+    S.map.addLayer({ id:"mover-point-glow", type:"circle", source:"mover-point",
+      paint:{"circle-radius":16,"circle-color":"rgba(240,98,146,0.5)","circle-opacity":0.38,
+        "circle-blur":3,"circle-stroke-width":0} });
 
-      async function runSequence() {
-        walked.length = 0;
-        walkedPhase = 0;
-        transitionPulseDone = false;
-        resetCometTrail();
-        hideDeed();
-        setSource("hero-flow", emptyFC());
-        setSource("hero-comet", emptyFC());
-        updateHud(WAYPOINTS[0].year);
-        refreshMigrationSegments(WAYPOINTS[0].year);
-        await easeTo({ center: [WAYPOINTS[0].lng, WAYPOINTS[0].lat], zoom: 9.9, pitch: 75, bearing: 30, duration: 3200 });
-        addWalkedPoint(WAYPOINTS[0].lng, WAYPOINTS[0].lat);
-        showDeed(WAYPOINTS[0]);
-        await wait(PAUSE_MS[0]);
-        hideDeed();
-        for (let i = 0; i < WAYPOINTS.length - 1; i++) {
-          await animateSegment(WAYPOINTS[i], WAYPOINTS[i + 1], SEGMENT_MS[i]);
-          if (!transitionPulseDone && WAYPOINTS[i].year < TRANSITION_YEAR && WAYPOINTS[i + 1].year >= TRANSITION_YEAR) {
-            transitionPulseDone = true;
-            await transitionPulse([WAYPOINTS[i + 1].lng, WAYPOINTS[i + 1].lat]);
-          }
-          showDeed(WAYPOINTS[i + 1]);
-          await wait(PAUSE_MS[i + 1]);
-          hideDeed();
-        }
-        const bounds = WAYPOINTS.reduce((acc, w) => {
-          acc[0][0] = Math.min(acc[0][0], w.lng); acc[0][1] = Math.min(acc[0][1], w.lat);
-          acc[1][0] = Math.max(acc[1][0], w.lng); acc[1][1] = Math.max(acc[1][1], w.lat);
-          return acc;
-        }, [[Infinity, Infinity], [-Infinity, -Infinity]]);
-        await new Promise((r) => { map.fitBounds([[bounds[0][0] - 0.6, bounds[0][1] - 0.5], [bounds[1][0] + 0.6, bounds[1][1] + 0.5]], { padding: { top: 80, bottom: 120, left: 24, right: 24 }, maxZoom: 6, pitch: 28, bearing: -10, duration: 2600 }); map.once("moveend", r); });
+    /* Trim labels + init place markers */
+    trimBasemapLabels();
+    initPlaceLabels();
+
+    /* Begin loop */
+    S.map.once("idle", async function () {
+      for (;;) {
+        try { await runSequence(); } catch (e) { console.warn("runSequence error", e); await wait(2000); }
         await wait(LOOP_GAP_MS);
       }
+    });
+  }
 
-      map.on("load", async function () {
-        map.addSource("era-flow", { type: "geojson", data: emptyFC() });
-        map.addLayer({
-          id: "era-flow-circles",
-          type: "circle",
-          source: "era-flow",
-          paint: {
-            "circle-radius": 1.45,
-            "circle-color": ["case", ["==", ["get", "hot"], 1], "#8be9ff", "#37d5ff"],
-            "circle-opacity": ["get", "o"],
-            "circle-blur": 0.28,
-            "circle-stroke-width": 0.35,
-            "circle-stroke-color": "rgba(220,245,255,0.65)",
-            "circle-stroke-opacity": ["get", "o"],
-          },
-        });
-        map.addSource("hero-flow", { type: "geojson", data: emptyFC() });
-        map.addLayer({
-          id: "hero-flow-circles",
-          type: "circle",
-          source: "hero-flow",
-          paint: {
-            "circle-radius": 2.65,
-            "circle-color": "#9fb3c2",
-            "circle-opacity": 0.56,
-            "circle-blur": 0.28,
-            "circle-stroke-width": 0.5,
-            "circle-stroke-color": "rgba(255,255,255,0.55)",
-            "circle-stroke-opacity": 0.38,
-          },
-        });
-        map.addSource("hero-comet", { type: "geojson", data: emptyFC() });
-        map.addLayer({
-          id: "hero-comet-circles",
-          type: "circle",
-          source: "hero-comet",
-          paint: {
-            "circle-radius": ["get", "r"],
-            "circle-color": [
-              "case",
-              ["==", ["get", "head"], 1],
-              "#ff5d73",
-              "#ff9ab0",
-            ],
-            "circle-opacity": ["get", "o"],
-            "circle-stroke-width": ["case", ["==", ["get", "head"], 1], 1.28, 0.8],
-            "circle-stroke-color": "rgba(255,255,255,0.82)",
-            "circle-stroke-opacity": ["get", "o"],
-            "circle-blur": ["case", ["==", ["get", "head"], 1], 0.08, 0.22],
-          },
-        });
-
-        try {
-          const r = await fetch(MIGRATION_URL);
-          if (r.ok) migrationBuckets = buildMigrationBuckets(await r.json());
-        } catch (e) { console.warn("migration load failed", e); }
-
-        if (!walkedRaf) walkedRaf = requestAnimationFrame(tickWalked);
-        if (!migrationRaf) migrationRaf = requestAnimationFrame(tickMigration);
-
-        for (;;) {
-          try { await runSequence(); } catch (e) { console.warn(e); await wait(1800); }
-        }
-      });
-    })();
+  init().catch(function (e) {
+    console.error("Init failed", e);
+    document.body.textContent = "初始化失败: " + (e.message || String(e));
+  });
+})();
   </script>
 </body>
 </html>

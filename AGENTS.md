@@ -4,7 +4,7 @@
 
 ## 项目 DNA
 
-- **viz/ 是纯前端**（静态 HTML + Leaflet IIFE，无 bundler），`viz/index.html` 为主图，`viz/vip-path-trilogy.html` 为李白→苏轼→李清照三人连播专题。
+- **viz/ 是纯前端**（静态 HTML + MapLibre GL JS / Leaflet IIFE，无 bundler），`viz/index.html` 为主图，`viz/vip-path-trilogy.html` 为李白→苏轼→李清照三人连播专题。
 - **时间轴** `T0=618`, `T1=1279`，播放速率由 `PLAYBACK_DIVISOR = 270`（`app.js`）控制。
 - **轨迹数据** `viz/data/trajectories.json` 由 `scripts/build_tang_trajectories.py` 从 `data/out/poetlife_flat.sqlite` 生成；不要手改。
 - **Hartwell 朝代外廓** `viz/data/hartwell_dynasty_outlines.json`（**v4+**：`borderHard` / `borderSoft` 线 + `borderChinaFade` 面）由 `scripts/build_hartwell_dynasty_outlines.py` 生成；与今中国陆地国界重合的朝代外缘从 **soft 线**中剔除，用 **国界外侧淡色面**示意可能外延；主图、`vip-path-trilogy.js`、`maplibre-liqz-camera-demo.html` 共用切片键；缺 `border*` 时回退旧「面描边」单层。
@@ -37,7 +37,6 @@ python3 scripts/build_hartwell_dynasty_outlines.py
 
 # 校验
 python3 scripts/validate_trajectory_samples.py
-node -e "new Function(require('fs').readFileSync('viz/app.js','utf8')); console.log('app.js ok')"
 node --check viz/vip-path-trilogy.js
 
 # 视频录制（需先启动预览服务）

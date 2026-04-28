@@ -40,12 +40,13 @@
     }
     #tlPoetryHint.active { display: block; }
 
-    /* ── Deed popup (bottom-center) ── */
+    /* ── Deed popup (bottom-right, avoid poetry card) ── */
     #dkPop {
-      position: absolute; z-index: 4; left: 50%;
+      position: absolute; z-index: 4;
+      right: max(10px, calc(env(safe-area-inset-right, 0px) + 10px));
       bottom: calc(max(env(safe-area-inset-bottom, 0px), 10px) + 10px);
-      transform: translateX(-50%) translateY(40px);
-      width: min(460px, 90vw); max-height: 36vh;
+      transform: translateY(40px);
+      width: min(360px, 88vw); max-height: 32vh;
       overflow-y: auto; -webkit-overflow-scrolling: touch;
       padding: 14px 18px;
       border: 1px solid rgba(240,98,146,0.48);
@@ -59,7 +60,7 @@
     }
     #dkPop::-webkit-scrollbar { width: 4px; }
     #dkPop::-webkit-scrollbar-thumb { background: rgba(240,98,146,0.25); border-radius: 4px; }
-    #dkPop.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    #dkPop.show { opacity: 1; transform: translateY(0); }
     #dkPop .dk-place {
       font-size: 18px; font-weight: 800; color: #f06292;
       margin-bottom: 4px; text-shadow: 0 0 10px rgba(240,98,146,0.25);
@@ -108,12 +109,14 @@
       white-space: pre-wrap; word-break: keep-all; letter-spacing: 0.04em;
     }
 
-    /* ── Place-label Marker (HTML, KaiTi, golden glow) ── */
+    /* ── Place-label Marker (HTML, KaiTi, crisp & readable) ── */
     .wp-lbl {
       font-family: "Kaiti SC","STKaiti","KaiTi","Songti SC","FangSong",serif;
-      font-size: 18px; font-weight: 700; line-height: 1.2;
-      color: #ffd166;
-      text-shadow: 0 0 7px #fff, 0 0 12px #fff, 0 1px 3px rgba(255,255,255,0.92);
+      font-size: 20px; font-weight: 800; line-height: 1.2;
+      color: #f5f0e8;
+      text-shadow: 0 1px 3px rgba(0,0,0,0.82), 0 0 1px rgba(0,0,0,0.6);
+      background: rgba(10,15,24,0.65);
+      padding: 2px 8px; border-radius: 4px;
       white-space: nowrap; pointer-events: none; user-select: none;
       transition: opacity 0.6s ease, filter 0.6s ease, transform 0.55s cubic-bezier(0.22,1,0.36,1);
     }
@@ -125,13 +128,47 @@
     /* ── Dynasty-map watermarks (large semi-transparent KaiTi) ── */
     .dyn-wm {
       font-family: "Kaiti SC","STKaiti","KaiTi","Songti SC",serif;
-      font-size: 28px; font-weight: 600; letter-spacing: 0.14em;
-      color: rgba(200,210,220,0.34);
-      text-shadow: 0 0 10px rgba(255,255,255,0.95), 0 0 18px rgba(255,255,255,0.85), 0 1px 2px rgba(255,255,255,0.8);
+      font-size: 42px; font-weight: 600; letter-spacing: 0.18em;
+      color: rgba(200,210,220,0.28);
+      text-shadow: 0 0 12px rgba(255,255,255,0.85), 0 0 22px rgba(255,255,255,0.7), 0 1px 3px rgba(255,255,255,0.65);
       pointer-events: none; user-select: none; white-space: nowrap;
       transition: opacity 0.45s ease, visibility 0.45s ease;
     }
     .dyn-wm.dyn-hidden { visibility: hidden; opacity: 0; }
+
+    /* ── Mini play/pause button (right edge, subtle) ── */
+    #miniPlay {
+      position: absolute; z-index: 5;
+      right: max(10px, calc(env(safe-area-inset-right, 0px) + 10px));
+      top: max(10px, calc(env(safe-area-inset-top, 0px) + 10px));
+      width: 28px; height: 28px;
+      border: 1px solid rgba(120,155,195,0.3);
+      border-radius: 6px;
+      background: rgba(6,10,18,0.55);
+      color: rgba(200,215,230,0.7);
+      font-size: 13px; line-height: 26px;
+      text-align: center; cursor: pointer;
+      backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+      transition: background 0.2s, color 0.2s, border-color 0.2s;
+      user-select: none; padding: 0; margin: 0;
+    }
+    #miniPlay:hover { background: rgba(20,30,50,0.7); color: #fff; border-color: rgba(160,190,220,0.5); }
+
+    #miniProgress {
+      position: absolute; z-index: 5;
+      right: max(48px, calc(env(safe-area-inset-right, 0px) + 48px));
+      top: calc(max(10px, calc(env(safe-area-inset-top, 0px) + 10px)) + 5px);
+      width: clamp(80px, 16vw, 180px); height: 14px;
+      border-radius: 3px; background: rgba(120,155,195,0.15);
+      overflow: hidden; cursor: pointer;
+      display: flex; align-items: center;
+    }
+    #miniProgress .progress-fill {
+      height: 4px; width: 0%;
+      background: linear-gradient(90deg, rgba(240,98,146,0.6), rgba(240,98,146,0.9));
+      border-radius: 2px; transition: width 0.3s ease; pointer-events: none;
+    }
+    #miniProgress:hover { background: rgba(120,155,195,0.28); }
   </style>
 </head>
 <body>
@@ -150,6 +187,8 @@
   <div id="pmCard" aria-live="polite" aria-label="李清照作品">
     <div class="pm-scroll" id="pmScroll"></div>
   </div>
+  <button id="miniPlay" title="播放 / 暂停">▶</button>
+  <div id="miniProgress"><div class="progress-fill" id="progFill"></div></div>
 
   <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js" crossorigin=""></script>
   <script>
@@ -163,7 +202,7 @@
   const TRAJ_URL       = "data/trajectories.json";
   const LIQZ_NAME      = "李清照";
 
-  const SONG_BLEND_LO  = 1125;
+  const SONG_BLEND_LO  = 1127;
   const SONG_BLEND_HI  = 1128;
   const HIT_YEAR       = 1127;
   const HIT_WINDOW     = 2.2;
@@ -217,13 +256,14 @@
   const S = {
     map: null,
     waypoints: [],
-    wYrs: [],         // yearStart for each waypoint
+    wYrs: [],
     dynasty: null,
     dynastyReady: false,
     borderSplit: false,
     simYear: 0,
-    walkLine: [],     // [[lng,lat]...] full walked path
-    cometHist: [],    // [[lng,lat]...] recent positions
+    walkLine: [],
+    walkRaw: [],
+    cometHist: [],
     wmMarkers: {},
     wpMarkers: [],
     poetryQueue: [],
@@ -231,6 +271,16 @@
     poetrySeen: new Set(),
     poetryPrevYf: null,
     isFirstRun: true,
+    allPoets: [],
+    migBuckets: null,
+    migRaf: null,
+    migPhase: 0,
+    paused: false,
+    totalSegs: 0,
+    doneSegs: 0,
+    pauseResolve: null,
+    seekTo: -1,
+    cancelAnim: false,
   };
 
   /* ================================================================
@@ -247,6 +297,8 @@
     dkBody:  document.getElementById("dkBody"),
     pmCard:  document.getElementById("pmCard"),
     pmScroll: document.getElementById("pmScroll"),
+    miniPlay: document.getElementById("miniPlay"),
+    progFill: document.getElementById("progFill"),
   };
 
   /* ================================================================
@@ -257,6 +309,24 @@
   function dist(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1]); }
   function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
   function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function pauseAwareWait(ms) {
+    return new Promise(function (r) {
+      /* Check frequently for unpause */
+      function tick(remaining) {
+        if (S.paused) {
+          S.pauseResolve = function () { tick(remaining); };
+          return;
+        }
+        if (remaining <= 0) { r(); return; }
+        var step = Math.min(remaining, 120);
+        setTimeout(function () { tick(remaining - step); }, step);
+      }
+      tick(ms);
+    });
+  }
+  function setProgBar(pct) {
+    if (dom.progFill) dom.progFill.style.width = Math.round(pct * 100) + "%";
+  }
   function easeTo(opts) {
     return new Promise(function (r) {
       S.map.easeTo(Object.assign({ essential: true }, opts));
@@ -266,15 +336,28 @@
   function emptyFC() { return { type: "FeatureCollection", features: [] }; }
   function setSrc(id, data) { var s = S.map.getSource(id); if (s) s.setData(data); }
   function nearestEvent(y) {
-    var t = EVENTS[0].t;
-    for (var i = 0; i < EVENTS.length; i++) { if (EVENTS[i].y <= y) t = EVENTS[i].t; else break; }
-    return t;
+    var t = EVENTS[0].t, ey = EVENTS[0].y;
+    for (var i = 0; i < EVENTS.length; i++) { if (EVENTS[i].y <= y) { t = EVENTS[i].t; ey = EVENTS[i].y; } else break; }
+    return { y: ey, t: t };
   }
   function trimDetail(t) {
     if (!t) return "";
     return String(t).split(/\n/).map(function (l) {
       return l.replace(/^[,，、\s]+/, "").trim();
     }).filter(Boolean).join("\n");
+  }
+  function bezierCtrl(ax, ay, bx, by) {
+    var mx = (ax + bx) / 2, my = (ay + by) / 2;
+    var dx = by - ay, dy = -(bx - ax);
+    var len = Math.hypot(dx, dy);
+    if (len < 1e-9) return [mx, my];
+    var bend = Math.min(0.38, Math.hypot(bx - ax, by - ay) * 0.13);
+    return [mx + (dx / len) * bend, my + (dy / len) * bend];
+  }
+  function bezierPt(p0, p1, p2, t) {
+    var u = 1 - t;
+    return [u * u * p0[0] + 2 * u * t * p1[0] + t * t * p2[0],
+            u * u * p0[1] + 2 * u * t * p1[1] + t * t * p2[1]];
   }
 
   /* ================================================================
@@ -294,8 +377,9 @@
      ================================================================ */
   function updateTlHud(y) {
     var yi = Math.floor(y);
+    var ev = nearestEvent(yi);
     dom.tlYear.textContent = "公元 " + yi + " 年";
-    dom.tlEvent.textContent = nearestEvent(yi);
+    dom.tlEvent.textContent = "公元 " + ev.y + " — " + ev.t;
     dom.tlHud.classList.toggle("transition-hit", Math.abs(y - HIT_YEAR) <= HIT_WINDOW);
   }
 
@@ -545,19 +629,38 @@
   }
 
   /* ================================================================
-     ROUTE RENDERING (line + comet + current-point)
+     ROUTE RENDERING (bezier arc line + comet + current-point)
      ================================================================ */
+  function bezierSmoothCoords(raw) {
+    if (!raw || raw.length < 2) return raw.slice();
+    var out = [];
+    for (var i = 0; i < raw.length - 1; i++) {
+      var a = raw[i], b = raw[i + 1];
+      var cp = bezierCtrl(a[0], a[1], b[0], b[1]);
+      var steps = Math.max(6, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1]) * 14));
+      for (var s = 0; s <= steps; s++) {
+        var t = s / steps;
+        var pt = bezierPt(a, cp, b, t);
+        if (s === 0 && i > 0 && out.length > 0) {
+          /* skip duplicate start point when chaining */
+        } else {
+          out.push(pt);
+        }
+      }
+    }
+    return out;
+  }
   function updateWalkLineSrc() {
     if (!S.map.getSource("walked-line")) return;
-    var coords = S.walkLine;
-    if (coords.length < 2) { setSrc("walked-line", emptyFC()); return; }
+    if (S.walkRaw.length < 2) { setSrc("walked-line", emptyFC()); return; }
+    var curved = bezierSmoothCoords(S.walkRaw);
     var fc = { type:"FeatureCollection", features:[
-      { type:"Feature", properties:{}, geometry:{ type:"LineString", coordinates:coords.slice() } }
+      { type:"Feature", properties:{}, geometry:{ type:"LineString", coordinates:curved } }
     ]};
     setSrc("walked-line", fc);
   }
   function appendWalkSeg(fromLng, fromLat, toLng, toLat) {
-    var c = S.walkLine;
+    var c = S.walkRaw;
     if (!c.length) { c.push([fromLng, fromLat]); }
     var last = c[c.length-1];
     if (dist(last, [fromLng, fromLat]) > 1e-8) c.push([fromLng, fromLat]);
@@ -610,6 +713,88 @@
   }
 
   /* ================================================================
+     MIGRATION FLOW (contemporary scholars southward wave)
+     ================================================================ */
+  function buildMigBuckets(poets) {
+    var buckets = new Map();
+    for (var pi = 0; pi < poets.length; pi++) {
+      var poet = poets[pi];
+      if (poet.name === LIQZ_NAME) continue;
+      var wps = poet.waypoints;
+      if (!Array.isArray(wps) || wps.length < 2) continue;
+      for (var wi = 0; wi < wps.length - 1; wi++) {
+        var a = wps[wi], b = wps[wi + 1];
+        if (typeof a.lng !== "number" || typeof a.lat !== "number" || typeof b.lng !== "number" || typeof b.lat !== "number") continue;
+        var d = dist([a.lng, a.lat], [b.lng, b.lat]);
+        var south = a.lat - b.lat;
+        if (d < 0.35 || south < 0.2 || a.lat < 30) continue;
+        var moveYear = typeof b.yearStart === "number" ? b.yearStart : a.yearStart;
+        if (!isFinite(moveYear) || moveYear < 980 || moveYear > 1220) continue;
+        moveYear = Math.floor(moveYear);
+        if (!buckets.has(moveYear)) buckets.set(moveYear, []);
+        buckets.get(moveYear).push({
+          a: [a.lng, a.lat], b: [b.lng, b.lat],
+          o: clamp(0.28 + south * 0.55 + d * 0.06, 0.15, 1),
+        });
+      }
+    }
+    return buckets;
+  }
+  function stopMigFlow() {
+    if (S.migRaf != null) { cancelAnimationFrame(S.migRaf); S.migRaf = null; }
+    S.migPhase = 0;
+    tickMigFlow._last = 0;
+    setSrc("mig-flow", emptyFC());
+  }
+  function tickMigFlow(now) {
+    if (!S.migBuckets || S.migBuckets.size === 0) { S.migRaf = requestAnimationFrame(tickMigFlow); return; }
+    var src = S.map.getSource("mig-flow");
+    if (!src) { S.migRaf = requestAnimationFrame(tickMigFlow); return; }
+    S.migRaf = requestAnimationFrame(tickMigFlow);
+    var last = tickMigFlow._last || now;
+    var dt = clamp((now - last) / 1000, 0, 0.12);
+    tickMigFlow._last = now;
+    if (dt < 1e-6) return;
+    var y = Math.floor(S.simYear);
+    var yLo = Math.max(960, y - 38);
+    var segs = [];
+    for (var yy = yLo; yy <= y; yy++) {
+      var rows = S.migBuckets.get(yy);
+      if (!rows) continue;
+      var fade = 1 - (y - yy) / 38;
+      for (var ri = 0; ri < rows.length; ri++) {
+        var r = rows[ri];
+        segs.push({ a: r.a, b: r.b, o: r.o * clamp(fade, 0.06, 1) });
+        if (segs.length >= 320) break;
+      }
+      if (segs.length >= 320) break;
+    }
+    if (!segs.length) { setSrc("mig-flow", emptyFC()); return; }
+    var boost = clamp(1 - Math.abs(S.simYear - HIT_YEAR) / 3.2, 0, 1);
+    var speed = 0.018 + boost * 0.015;
+    S.migPhase = (S.migPhase + speed * dt) % 1;
+    var n = clamp(Math.max(80, segs.length), 80, Math.round(280 * (1 + boost * 0.52)));
+    var feats = [];
+    var half = Math.max(1, Math.round(n * 0.35));
+    for (var i = 0; i < n; i++) {
+      var seg = segs[i % segs.length];
+      var t = (S.migPhase + i / n) % 1;
+      var pt = [lerp(seg.a[0], seg.b[0], t), lerp(seg.a[1], seg.b[1], t)];
+      var isHot = boost > 0.2 ? 1 : 0;
+      var o = clamp(seg.o * (0.75 + boost * 0.55), 0.06, 0.68);
+      feats.push({ type:"Feature", properties:{ o:o, hot:isHot },
+        geometry:{ type:"Point", coordinates:pt } });
+    }
+    setSrc("mig-flow", { type:"FeatureCollection", features:feats });
+  }
+  tickMigFlow._last = 0;
+  function startMigFlow() {
+    if (S.migRaf != null) return;
+    tickMigFlow._last = performance.now();
+    S.migRaf = requestAnimationFrame(tickMigFlow);
+  }
+
+  /* ================================================================
      ANIMATION (per-segment + deed at each waypoint)
      ================================================================ */
   function animateSegment(a, b, segMs) {
@@ -621,6 +806,8 @@
       easeTo({ center:[midLng, midLat], zoom:z, pitch:clamp(62 - S.walkLine.length * 0.25, 38, 70), bearing:mapGetBearing(), duration:900 }).then(function () {
         var prevPoetryYf = S.poetryPrevYf == null ? a.year : S.poetryPrevYf;
         function frame() {
+          if (S.cancelAnim) return;
+          if (S.paused) { S.pauseResolve = function () { requestAnimationFrame(frame); }; return; }
           var u = clamp((performance.now() - t0) / segMs, 0, 1);
           var t = ease(u);
           var lng = lerp(a.lng, b.lng, t), lat = lerp(a.lat, b.lat, t);
@@ -658,9 +845,16 @@
     hidePoemCard(); clearPoemTimer(); abortPoetry();
     S.poetrySeen.clear(); S.poetryPrevYf = null;
     hideDeed(); hideAllWpLabels();
-    S.walkLine.length = 0; updateWalkLineSrc();
+    S.walkLine.length = 0; S.walkRaw.length = 0; updateWalkLineSrc();
     S.cometHist.length = 0; setSrc("mover-comet", emptyFC());
     setSrc("mover-point", emptyFC());
+    setSrc("mig-flow", emptyFC());
+    S.migPhase = 0;
+    S.doneSegs = 0;
+    S.totalSegs = S.waypoints.length - 1;
+    S.seekTo = -1;
+    S.cancelAnim = false;
+    setProgBar(0);
 
     var w = S.waypoints;
     var y0 = w[0].year;
@@ -672,26 +866,57 @@
     await easeTo({ center:[w[0].lng, w[0].lat], zoom:10.2, pitch:78, bearing:38, duration:3600 });
     pushComet(w[0].lng, w[0].lat);
     updateMoverPoint(w[0].lng, w[0].lat);
-    S.walkLine.push([w[0].lng, w[0].lat]); updateWalkLineSrc();
+    S.walkRaw.push([w[0].lng, w[0].lat]); updateWalkLineSrc();
     revealWpLabel(0);
     showDeed(0);
-    await wait(DEED_MS);
+    await pauseAwareWait(DEED_MS);
     hideDeed();
 
     /* Rise to overview */
     await easeTo({ center:[117.2,35.4], zoom:6.2, pitch:62, bearing:-18, duration:2800 });
 
     /* Loop through segments */
-    for (var i = 0; i < w.length - 1; i++) {
+    var i = 0;
+    while (i < w.length - 1) {
+      if (S.seekTo >= 0) {
+        var tgt = S.seekTo; S.seekTo = -1;
+        S.cancelAnim = true;
+        await pauseAwareWait(20); /* let current anim frame bail */
+        S.cancelAnim = false;
+        i = Math.min(tgt, w.length - 2);
+        /* Rewind visual state to target segment */
+        S.walkRaw.length = 0;
+        S.cometHist.length = 0;
+        hideAllWpLabels();
+        hideDeed();
+        if (i >= 0) {
+          S.walkRaw.push([w[0].lng, w[0].lat]);
+          for (var j = 0; j < i; j++) {
+            appendWalkSeg(w[j].lng, w[j].lat, w[j+1].lng, w[j+1].lat);
+          }
+          /* Set sim to the start of target segment */
+          S.simYear = w[i].year;
+          S.poetryPrevYf = Math.floor(w[i].year);
+          updateTlHud(S.simYear);
+          blendDynasty(S.simYear);
+          updateMoverPoint(w[i].lng, w[i].lat);
+          pushComet(w[i].lng, w[i].lat);
+          S.doneSegs = i;
+          setProgBar(i / S.totalSegs);
+        }
+        continue;
+      }
       var a = w[i], b = w[i+1];
       var yGap = b.year - a.year;
       var segMs = yGap < 2 ? SEG_MS_SHORT : yGap > 10 ? SEG_MS_LONG : SEG_MS_BASE;
       await animateSegment(a, b, segMs);
+      S.doneSegs = i + 1; setProgBar(S.doneSegs / S.totalSegs);
       revealWpLabel(i + 1);
       var deedMs = (i + 1 < w.length - 1 && w[i+1].year === w[i+2].year) ? DEED_MS_SHORT : DEED_MS;
       showDeed(i + 1);
-      await wait(deedMs);
+      await pauseAwareWait(deedMs);
       hideDeed();
+      i++;
     }
 
     /* Final zoom onto last city */
@@ -701,9 +926,10 @@
     updateMoverPoint(lw.lng, lw.lat);
     revealWpLabel(w.length - 1);
     showDeed(w.length - 1);
-    await wait(DEED_MS);
+    await pauseAwareWait(DEED_MS);
     hideDeed();
-    await wait(600);
+    await pauseAwareWait(600);
+    setProgBar(1);
 
     /* Panorama pull-out */
     var pts = w.map(function (wp) { return [wp.lng, wp.lat]; });
@@ -786,9 +1012,53 @@
       paint:{"circle-radius":16,"circle-color":"rgba(240,98,146,0.5)","circle-opacity":0.38,
         "circle-blur":3,"circle-stroke-width":0} });
 
+    S.map.addSource("mig-flow", { type:"geojson", data:emptyFC() });
+    S.map.addLayer({ id:"mig-flow-dots", type:"circle", source:"mig-flow",
+      paint:{
+        "circle-radius":["case",["==",["get","hot"],1],1.8,1.15],
+        "circle-color":["case",["==",["get","hot"],1],"#64ffda","#4dd0e1"],
+        "circle-opacity":["get","o"],
+        "circle-blur":0.25,
+        "circle-stroke-width":0.25,
+        "circle-stroke-color":["case",["==",["get","hot"],1],"rgba(220,255,245,0.6)","rgba(180,240,255,0.45)"],
+        "circle-stroke-opacity":["get","o"],
+      } });
+
     /* Trim labels + init place markers */
     trimBasemapLabels();
     initPlaceLabels();
+
+    /* Build migration flow data */
+    if (tr && tr.poets) { S.migBuckets = buildMigBuckets(tr.poets); }
+    startMigFlow();
+
+    /* Wire mini play/pause */
+    var miniP = document.getElementById("miniPlay");
+    miniP.onclick = function () {
+      S.paused = !S.paused;
+      miniP.textContent = S.paused ? "▶" : "⏸";
+      if (!S.paused && S.pauseResolve) {
+        var r = S.pauseResolve; S.pauseResolve = null; r();
+      }
+    };
+
+    /* Progress bar: click to seek */
+    var progBar = document.getElementById("miniProgress");
+    function progClick(e) {
+      var rect = progBar.getBoundingClientRect();
+      var pct = clamp((e.clientX - rect.left) / rect.width, 0, 1);
+      var segIdx = Math.round(pct * (S.waypoints.length - 1));
+      S.seekTo = segIdx;
+      if (S.paused && S.pauseResolve) {
+        var r = S.pauseResolve; S.pauseResolve = null; r();
+        S.paused = false;
+        miniP.textContent = "⏸";
+      }
+    }
+    var dragActive = false;
+    progBar.addEventListener("mousedown", function (e) { dragActive = true; progClick(e); });
+    window.addEventListener("mousemove", function (e) { if (dragActive) progClick(e); });
+    window.addEventListener("mouseup", function () { dragActive = false; });
 
     /* Begin loop */
     S.map.once("idle", async function () {

@@ -3,16 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <script>
-    (function () {
-      try {
-        if (new URLSearchParams(location.search).get("video") === "1") {
-          document.documentElement.classList.add("viz-video-export");
-        }
-      } catch (e) {}
-    })();
-  </script>
-  <title>李清照行迹 · Cinematic Journey</title>
+  <title>杜甫行迹 · Cinematic Journey</title>
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" crossorigin="" />
   <style>
     * { box-sizing: border-box; }
@@ -245,37 +236,16 @@
           rgba(0, 0, 0, 0.36) 100%);
       mix-blend-mode: overlay;
     }
-    /* ── Video export mode ── */
-    .viz-video-export #miniPlay,
-    .viz-video-export #miniProgress { display: none !important; }
-    .viz-video-export #tlHud {
-      top: 28px; left: 28px;
-      border: 1px solid rgba(73, 95, 118, 0.72);
-      background: rgba(6, 10, 18, 0.85);
-      box-shadow: 0 4px 22px rgba(0,0,0,0.45);
-    }
-    .viz-video-export #pmCard {
-      bottom: 36px; left: 28px;
-      border: 1px solid rgba(240,98,146,0.55);
-      background: rgba(10, 14, 24, 0.92);
-    }
-    .viz-video-export #dkPop {
-      right: 36px; bottom: 36px;
-      border: 1px solid rgba(255,209,102,0.35);
-      background: rgba(10, 14, 24, 0.88);
-    }
-    /* Ensure poetry hint visible */
-    .viz-video-export #tlPoetryHint.active { display: block; font-size: 13px; }
   </style>
 </head>
 <body>
 
   <div id="tlHud" aria-live="polite">
-    <div id="tlYear">公元 1084 年</div>
-    <div id="tlEvent">李清照生于章丘，诗书自华。</div>
+    <div id="tlYear">公元 712 年</div>
+    <div id="tlEvent">开元盛世，唐帝国国力臻于极盛。</div>
     <div id="tlPoetryHint"></div>
   </div>
-  <div id="map" aria-label="李清照行迹地图"></div>
+  <div id="map" aria-label="杜甫行迹地图"></div>
   <div id="hitOverlay" aria-hidden="true"></div>
   <div id="dkPop" aria-live="polite">
     <div id="dkPlace" class="dk-place"></div>
@@ -293,22 +263,21 @@
 (function () {
   "use strict";
 
-  /* ── URL params (video export mode) ── */
-  const qp = new URLSearchParams(location.search);
-  const IS_VIDEO_EXPORT = qp.get("video") === "1";
-
   /* ================================================================
      CONSTANTS
      ================================================================ */
   const DYNASTY_URL    = "data/hartwell_dynasty_outlines.json";
   const TRAJ_URL       = "data/trajectories.json";
-  const LIQZ_NAME      = "李清照";
+  const LIQZ_NAME      = "杜甫";
 
-  const SONG_BLEND_LO  = 1127;
-  const SONG_BLEND_HI  = 1128;
-  const HIT_YEAR       = 1127;
+  const SONG_BLEND_LO  = 0;
+  const SONG_BLEND_HI  = 1;
+  const HIT_YEAR       = 756;
   const HIT_WINDOW     = 2.2;
   const HIT_SHOCK_WINDOW = 0.72;
+  const MIG_YEAR_LO    = 700;
+  const MIG_YEAR_HI    = 800;
+  const MIG_TRAIL_YEARS = 28;
 
   const COMET_LEN      = 18;
   const SEG_MS_BASE    = 5800;
@@ -326,31 +295,31 @@
   const POEM_MS_MAX    = 16000;
 
   const POETRY_TRIGGERS = [
-    { year: 1099, items: [
-      { t:"如梦令·常记溪亭日暮", e:"约 1099 年", b:"常记溪亭日暮，沉醉不知归路。兴尽晚回舟，误入藕花深处。争渡，争渡，惊起一滩鸥鹭。" },
-      { t:"如梦令·昨夜雨疏风骤", e:"约 1099 年", b:"昨夜雨疏风骤，浓睡不消残酒。试问卷帘人，却道海棠依旧。知否，知否？应是绿肥红瘦。" },
+    { year: 757, items: [
+      { t:"春望", e:"约 757 年", b:"国破山河在，城春草木深。\n感时花溅泪，恨别鸟惊心。\n烽火连三月，家书抵万金。\n白头搔更短，浑欲不胜簪。" },
     ]},
-    { year: 1101, items: [
-      { t:"醉花阴·薄雾浓云愁永昼", e:"约 1101—1120 年", b:"薄雾浓云愁永昼，瑞脑销金兽。佳节又重阳，玉枕纱厨，半夜凉初透。\n东篱把酒黄昏后，有暗香盈袖。莫道不销魂，帘卷西风，人比黄花瘦。" },
+    { year: 759, items: [
+      { t:"月夜忆舍弟", e:"约 759 年", b:"戍鼓断人行，边秋一雁声。\n露从今夜白，月是故乡明。\n有弟皆分散，无家问死生。\n寄书长不达，况乃未休兵。" },
     ]},
-    { year: 1127, items: [
-      { t:"夏日绝句", e:"1127 年", b:"生当作人杰，死亦为鬼雄。\n至今思项羽，不肯过江东。" },
+    { year: 761, items: [
+      { t:"茅屋为秋风所破歌", e:"约 761 年", b:"八月秋高风怒号，卷我屋上三重茅。\n……\n安得广厦千万间，大庇天下寒士俱欢颜！" },
     ]},
-    { year: 1132, items: [
-      { t:"声声慢·寻寻觅觅", e:"约 1129—1132 年", b:"寻寻觅觅，冷冷清清，凄凄惨惨戚戚。乍暖还寒时候，最难将息。三杯两盏淡酒，怎敌他、晚来风急？雁过也，正伤心，却是旧时相识。\n满地黄花堆积。憔悴损，如今有谁堪摘？守着窗儿，独自怎生得黑？梧桐更兼细雨，到黄昏、点点滴滴。这次第，怎一个愁字了得！" },
+    { year: 763, items: [
+      { t:"闻官军收河南河北", e:"约 763 年", b:"剑外忽传收蓟北，初闻涕泪满衣裳。\n却看妻子愁何在，漫卷诗书喜欲狂。\n白日放歌须纵酒，青春作伴好还乡。\n即从巴峡穿巫峡，便下襄阳向洛阳。" },
     ]},
-    { year: 1135, items: [
-      { t:"武陵春·春晚", e:"1135 年", b:"风住尘香花已尽，日晚倦梳头。物是人非事事休，欲语泪先流。\n闻说双溪春尚好，也拟泛轻舟。只恐双溪舴艋舟，载不动许多愁。" },
+    { year: 767, items: [
+      { t:"登高", e:"约 767 年", b:"风急天高猿啸哀，渚清沙白鸟飞回。\n无边落木萧萧下，不尽长江滚滚来。\n万里悲秋常作客，百年多病独登台。\n艰难苦恨繁霜鬓，潦倒新停浊酒杯。" },
     ]},
   ];
 
   const EVENTS = [
-    { y:1084, t:"李清照生于章丘，诗书自华。" },
-    { y:1101, t:"与赵明诚成婚，金石书画相契相知。" },
-    { y:1127, t:"靖康之变，北宋覆亡，南渡序幕开启。" },
-    { y:1129, t:"赵明诚卒于建康，清照孤旅深愁。" },
-    { y:1134, t:"整理旧藏与文稿，词风沉郁深婉。" },
-    { y:1155, t:"晚岁寓居临安附近，清照词名传后世。" },
+    { y:713, t:"开元盛世，唐帝国国力臻于极盛。" },
+    { y:742, t:"天宝年间，边镇与朝廷矛盾日深。" },
+    { y:755, t:"安史之乱爆发：范阳起兵，天下震荡。" },
+    { y:756, t:"两京先后失守：长安陷落，山河破碎。" },
+    { y:757, t:"肃宗即位，朝廷与藩镇合力收复失地。" },
+    { y:763, t:"安史之乱平定，战后凋敝与离散持续多年。" },
+    { y:768, t:"吐蕃等边患未息，关中与蜀地屡受冲击。" },
   ];
 
   /* ================================================================
@@ -363,6 +332,7 @@
     dynasty: null,
     dynastyReady: false,
     borderSplit: false,
+    singleSnapshot: false,
     simYear: 0,
     walkLine: [],
     walkRaw: [],
@@ -661,15 +631,16 @@
     return !!(sn && sn.borderChinaFade && sn.borderChinaFade.features && sn.borderChinaFade.features.length);
   }
   function addDynastyLayers(bundle) {
-    var ns = bundle.snapshots.chin1080, ss = bundle.snapshots.chin1200;
-    if (!ns || !ss) return;
-    var nGeo = ns.geo, sGeo = ss.geo;
-    if (!nGeo || !sGeo || !nGeo.features || !sGeo.features) return;
-    var bis = snapHasBorderSplit(ns) && snapHasBorderSplit(ss);
+    /* Tang-only backdrop (tang741) — reuse north-* layer ids so the rest of the pipeline stays intact */
+    var ns = bundle.snapshots.tang741;
+    if (!ns) return;
+    var nGeo = ns.geo;
+    if (!nGeo || !nGeo.features) return;
+    var bis = snapHasBorderSplit(ns);
     S.borderSplit = bis;
 
     S.map.addSource("north-geo", { type:"geojson", data:nGeo });
-    S.map.addSource("south-geo", { type:"geojson", data:sGeo });
+    S.singleSnapshot = true;
 
     S.map.addLayer({ id:"north-fill", type:"fill", source:"north-geo",
       paint:{ "fill-color":["coalesce",["get","fill"],"#78909c"], "fill-opacity":0.085 } });
@@ -691,50 +662,30 @@
       S.map.addLayer({ id:"north-line", type:"line", source:"north-geo",
         paint:{"line-color":["coalesce",["get","stroke"],"#78909c"],"line-width":["coalesce",["get","weight"],1.2],"line-opacity":0.52} });
     }
-
-    S.map.addLayer({ id:"south-fill", type:"fill", source:"south-geo",
-      paint:{ "fill-color":["coalesce",["get","fill"],"#78909c"], "fill-opacity":0 } });
-    if (bis && snapHasChinaFade(ss)) {
-      S.map.addSource("south-cfade", { type:"geojson", data:ss.borderChinaFade });
-      S.map.addLayer({ id:"south-cfade-fill", type:"fill", source:"south-cfade",
-        paint:{ "fill-color":"#7986cb", "fill-opacity":0 } });
-    }
-    if (bis) {
-      S.map.addSource("south-bh", { type:"geojson", data:ss.borderHard });
-      S.map.addSource("south-bs", { type:"geojson", data:ss.borderSoft });
-      S.map.addLayer({ id:"south-line-soft", type:"line", source:"south-bs",
-        layout:{"line-cap":"round","line-join":"round"},
-        paint:{"line-color":"#90a4ae","line-width":5,"line-blur":2,"line-opacity":0} });
-      S.map.addLayer({ id:"south-line-hard", type:"line", source:"south-bh",
-        layout:{"line-cap":"round","line-join":"round"},
-        paint:{"line-color":"#90a4ae","line-width":1.35,"line-blur":0.25,"line-opacity":0} });
-    } else {
-      S.map.addLayer({ id:"south-line", type:"line", source:"south-geo",
-        paint:{"line-color":["coalesce",["get","stroke"],"#78909c"],"line-width":["coalesce",["get","weight"],1.2],"line-opacity":0} });
-    }
     S.dynastyReady = true;
   }
 
   function blendDynasty(y) {
     if (!S.dynastyReady) return;
-    var u = clamp((y - SONG_BLEND_LO) / (SONG_BLEND_HI - SONG_BLEND_LO), 0, 1);
     var fMax = 0.085, lMax = 0.58;
     var map = S.map;
-    if (map.getLayer("north-fill")) map.setPaintProperty("north-fill","fill-opacity", fMax * (1 - u));
-    if (map.getLayer("south-fill")) map.setPaintProperty("south-fill","fill-opacity", fMax * u);
-    var nL = lMax * (1 - u) + 0.12 * u, sL = 0.12 * (1 - u) + lMax * u;
+    var u = 0;
+    if (S.singleSnapshot) {
+      if (map.getLayer("north-fill")) map.setPaintProperty("north-fill","fill-opacity", fMax);
+    } else {
+      u = clamp((y - SONG_BLEND_LO) / (SONG_BLEND_HI - SONG_BLEND_LO), 0, 1);
+      if (map.getLayer("north-fill")) map.setPaintProperty("north-fill","fill-opacity", fMax * (1 - u));
+    }
+    /* no south snapshot in Tang-only mode */
+    var nL = S.singleSnapshot ? lMax : (lMax * (1 - u) + 0.12 * u);
     if (S.borderSplit) {
       if (map.getLayer("north-line-hard")) map.setPaintProperty("north-line-hard","line-opacity", nL * 0.96);
       if (map.getLayer("north-line-soft")) map.setPaintProperty("north-line-soft","line-opacity", nL * 0.24);
-      if (map.getLayer("south-line-hard")) map.setPaintProperty("south-line-hard","line-opacity", sL * 0.96);
-      if (map.getLayer("south-line-soft")) map.setPaintProperty("south-line-soft","line-opacity", sL * 0.24);
-      if (map.getLayer("north-cfade-fill")) map.setPaintProperty("north-cfade-fill","fill-opacity", 0.055 * (1 - u) + 0.02 * u);
-      if (map.getLayer("south-cfade-fill")) map.setPaintProperty("south-cfade-fill","fill-opacity", 0.02 * (1 - u) + 0.055 * u);
+      if (map.getLayer("north-cfade-fill")) map.setPaintProperty("north-cfade-fill","fill-opacity", S.singleSnapshot ? 0.055 : (0.055 * (1 - u) + 0.02 * u));
     } else {
       if (map.getLayer("north-line")) map.setPaintProperty("north-line","line-opacity", nL);
-      if (map.getLayer("south-line")) map.setPaintProperty("south-line","line-opacity", sL);
     }
-    updateWatermarks(y, u);
+    /* Song-only watermark logic not used in Tang version */
 
     /* Extra: 1127 shock pass (no change to caller order) */
     applyHitOverlay(y);
@@ -943,15 +894,19 @@
         var a = wps[wi], b = wps[wi + 1];
         if (typeof a.lng !== "number" || typeof a.lat !== "number" || typeof b.lng !== "number" || typeof b.lat !== "number") continue;
         var d = dist([a.lng, a.lat], [b.lng, b.lat]);
-        var south = a.lat - b.lat;
-        if (d < 0.35 || south < 0.2 || a.lat < 30) continue;
+        var dlat = b.lat - a.lat;
+        /* Tang turmoil: not only southward; keep larger moves with noticeable lat change */
+        if (d < 0.55 || Math.abs(dlat) < 0.12) continue;
         var moveYear = typeof b.yearStart === "number" ? b.yearStart : a.yearStart;
-        if (!isFinite(moveYear) || moveYear < 980 || moveYear > 1220) continue;
+        if (!isFinite(moveYear) || moveYear < MIG_YEAR_LO || moveYear > MIG_YEAR_HI) continue;
         moveYear = Math.floor(moveYear);
         if (!buckets.has(moveYear)) buckets.set(moveYear, []);
+        var intensity = clamp(0.22 + Math.abs(dlat) * 0.7 + d * 0.08, 0.14, 1);
+        /* amplify for An Lushan years */
+        if (moveYear >= 755 && moveYear <= 763) intensity = clamp(intensity * 1.35, 0, 1);
         buckets.get(moveYear).push({
           a: [a.lng, a.lat], b: [b.lng, b.lat],
-          o: clamp(0.28 + south * 0.55 + d * 0.06, 0.15, 1),
+          o: intensity,
         });
       }
     }
@@ -973,12 +928,12 @@
     tickMigFlow._last = now;
     if (dt < 1e-6) return;
     var y = Math.floor(S.simYear);
-    var yLo = Math.max(960, y - 38);
+    var yLo = Math.max(MIG_YEAR_LO, y - MIG_TRAIL_YEARS);
     var segs = [];
     for (var yy = yLo; yy <= y; yy++) {
       var rows = S.migBuckets.get(yy);
       if (!rows) continue;
-      var fade = 1 - (y - yy) / 38;
+      var fade = 1 - (y - yy) / MIG_TRAIL_YEARS;
       for (var ri = 0; ri < rows.length; ri++) {
         var r = rows[ri];
         segs.push({ a: r.a, b: r.b, o: r.o * clamp(fade, 0.06, 1) });
@@ -987,18 +942,20 @@
       if (segs.length >= 320) break;
     }
     if (!segs.length) { setSrc("mig-flow", emptyFC()); return; }
-    var boost = clamp(1 - Math.abs(S.simYear - HIT_YEAR) / 3.2, 0, 1);
-    var speed = 0.018 + boost * 0.015;
+    /* wider, heavier boost for 755–763 chaos window */
+    var chaos = (S.simYear >= 755 && S.simYear <= 763) ? 1 : 0;
+    var boost = clamp(1 - Math.abs(S.simYear - HIT_YEAR) / 6.4, 0, 1);
+    boost = clamp(boost + chaos * 0.35, 0, 1);
+    var speed = 0.020 + boost * 0.020;
     S.migPhase = (S.migPhase + speed * dt) % 1;
-    var n = clamp(Math.max(80, segs.length), 80, Math.round(280 * (1 + boost * 0.52)));
+    var n = clamp(Math.max(110, segs.length), 110, Math.round(360 * (1 + boost * 0.72)));
     var feats = [];
-    var half = Math.max(1, Math.round(n * 0.35));
     for (var i = 0; i < n; i++) {
       var seg = segs[i % segs.length];
       var t = (S.migPhase + i / n) % 1;
       var pt = [lerp(seg.a[0], seg.b[0], t), lerp(seg.a[1], seg.b[1], t)];
       var isHot = boost > 0.2 ? 1 : 0;
-      var o = clamp(seg.o * (0.75 + boost * 0.55), 0.06, 0.68);
+      var o = clamp(seg.o * (0.72 + boost * 0.75), 0.06, 0.82);
       feats.push({ type:"Feature", properties:{ o:o, hot:isHot },
         geometry:{ type:"Point", coordinates:pt } });
     }
@@ -1198,24 +1155,24 @@
 
     await new Promise(function (r) { S.map.once("load", r); });
 
-    /* Add dynasty layers */
-    if (dy && dy.snapshots) { addDynastyLayers(dy); addWatermarkMarkers(dy); }
+    /* Add dynasty layers (Tang-only) */
+    if (dy && dy.snapshots) { addDynastyLayers(dy); }
     captureHitBasePaint();
 
     /* Add route sources + layers (above dynasty) */
     S.map.addSource("walked-line", { type:"geojson", data:emptyFC() });
     S.map.addLayer({ id:"walked-line-layer", type:"line", source:"walked-line",
       layout:{"line-cap":"round","line-join":"round"},
-      paint:{"line-color":"#f06292","line-width":3.2,"line-opacity":0.44,"line-blur":0.6} });
+      paint:{"line-color":"#ffd166","line-width":3.2,"line-opacity":0.44,"line-blur":0.6} });
     S.map.addLayer({ id:"walked-line-glow", type:"line", source:"walked-line",
       layout:{"line-cap":"round","line-join":"round"},
-      paint:{"line-color":"#f06292","line-width":9,"line-opacity":0.12,"line-blur":2.4} });
+      paint:{"line-color":"#ffd166","line-width":9,"line-opacity":0.12,"line-blur":2.4} });
 
     S.map.addSource("mover-comet", { type:"geojson", data:emptyFC() });
     S.map.addLayer({ id:"mover-comet-circles", type:"circle", source:"mover-comet",
       paint:{
         "circle-radius":["get","r"],
-        "circle-color":["case",["==",["get","head"],1],"#ff5d73","#90a4ae"],
+        "circle-color":["case",["==",["get","head"],1],"#ffd166","#90a4ae"],
         "circle-opacity":["get","o"],
         "circle-stroke-width":["case",["==",["get","head"],1],1.2,0.5],
         "circle-stroke-color":["case",["==",["get","head"],1],"rgba(255,255,255,0.78)","rgba(255,255,255,0.40)"],
@@ -1224,21 +1181,21 @@
 
     S.map.addSource("mover-point", { type:"geojson", data:emptyFC() });
     S.map.addLayer({ id:"mover-point-c", type:"circle", source:"mover-point",
-      paint:{"circle-radius":7.8,"circle-color":"#ff6b8d","circle-opacity":0.92,
+      paint:{"circle-radius":7.8,"circle-color":"#ffd166","circle-opacity":0.92,
         "circle-stroke-width":2.2,"circle-stroke-color":"#fff","circle-stroke-opacity":0.86} });
     S.map.addLayer({ id:"mover-point-glow", type:"circle", source:"mover-point",
-      paint:{"circle-radius":16,"circle-color":"rgba(240,98,146,0.5)","circle-opacity":0.38,
+      paint:{"circle-radius":16,"circle-color":"rgba(255,209,102,0.55)","circle-opacity":0.38,
         "circle-blur":3,"circle-stroke-width":0} });
 
     S.map.addSource("mig-flow", { type:"geojson", data:emptyFC() });
     S.map.addLayer({ id:"mig-flow-dots", type:"circle", source:"mig-flow",
       paint:{
         "circle-radius":["case",["==",["get","hot"],1],1.8,1.15],
-        "circle-color":["case",["==",["get","hot"],1],"#64ffda","#4dd0e1"],
+        "circle-color":["case",["==",["get","hot"],1],"#ffd166","#90caf9"],
         "circle-opacity":["get","o"],
         "circle-blur":0.25,
         "circle-stroke-width":0.25,
-        "circle-stroke-color":["case",["==",["get","hot"],1],"rgba(220,255,245,0.6)","rgba(180,240,255,0.45)"],
+        "circle-stroke-color":["case",["==",["get","hot"],1],"rgba(255, 236, 190, 0.62)","rgba(200, 230, 255, 0.50)"],
         "circle-stroke-opacity":["get","o"],
       } });
 
@@ -1252,11 +1209,6 @@
 
     /* Wire mini play/pause */
     var miniP = document.getElementById("miniPlay");
-    var progWrap = document.getElementById("miniProgress");
-    if (IS_VIDEO_EXPORT) {
-      miniP.style.display = "none";
-      progWrap.style.display = "none";
-    }
     miniP.onclick = function () {
       S.paused = !S.paused;
       miniP.textContent = S.paused ? "▶" : "⏸";
@@ -1265,15 +1217,9 @@
       }
     };
 
-    var IS_VIDEO_EXPORT = document.documentElement.classList.contains("viz-video-export");
-    var IS_AUTOPLAY = IS_VIDEO_EXPORT && (function () {
-      try { return new URLSearchParams(location.search).get("autoplay") === "1"; } catch (_) { return false; }
-    })();
-
     /* Progress bar: click to seek */
     var progBar = document.getElementById("miniProgress");
     function progClick(e) {
-      if (IS_VIDEO_EXPORT) return;
       var rect = progBar.getBoundingClientRect();
       var pct = clamp((e.clientX - rect.left) / rect.width, 0, 1);
       var segIdx = Math.round(pct * (S.waypoints.length - 1));
@@ -1285,52 +1231,17 @@
       }
     }
     var dragActive = false;
-    if (!IS_VIDEO_EXPORT) {
-      progBar.addEventListener("mousedown", function (e) { dragActive = true; progClick(e); });
-      window.addEventListener("mousemove", function (e) { if (dragActive) progClick(e); });
-      window.addEventListener("mouseup", function () { dragActive = false; });
-    }
+    progBar.addEventListener("mousedown", function (e) { dragActive = true; progClick(e); });
+    window.addEventListener("mousemove", function (e) { if (dragActive) progClick(e); });
+    window.addEventListener("mouseup", function () { dragActive = false; });
 
     /* Begin loop */
-<<<<<<< Updated upstream
     S.map.once("idle", async function () {
-      if (IS_VIDEO_EXPORT) {
-        /* One-shot video export */
-        try { await runSequence(); } catch (e) { console.warn("runSequence error", e); }
-        /* Final hold then signal done */
-        await wait(3000);
-        window.__POET_VIZ_DONE__ = true;
-        return;
-      }
       for (;;) {
         try { await runSequence(); } catch (e) { console.warn("runSequence error", e); await wait(2000); }
         await wait(LOOP_GAP_MS);
-=======
-    var INITIAL_WAIT_MS = IS_AUTOPLAY ? 3500 : 0;
-    S._loopStarted = false;
-    function startLoop() {
-      if (S._loopStarted) return;
-      S._loopStarted = true;
-      if (IS_AUTOPLAY) {
-        setTimeout(function () { runLoop(); }, INITIAL_WAIT_MS);
-      } else {
-        runLoop();
->>>>>>> Stashed changes
       }
-    }
-    async function runLoop() {
-      if (IS_VIDEO_EXPORT) {
-        try { await runSequence(); } catch (e) { console.warn("runSequence error", e); }
-        window.__POET_VIZ_DONE__ = true;
-      } else {
-        for (;;) {
-          try { await runSequence(); } catch (e) { console.warn("runSequence error", e); await wait(2000); }
-          await wait(LOOP_GAP_MS);
-        }
-      }
-    }
-    S.map.once("idle", startLoop);
-    setTimeout(function () { startLoop(); }, 8000);
+    });
   }
 
   init().catch(function (e) {

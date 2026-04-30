@@ -22,14 +22,14 @@
     /* ── Timeline HUD (top-left) ── */
     #tlHud {
       position: absolute; z-index: 3;
-      top: max(10px, calc(env(safe-area-inset-top, 0px) + 10px));
-      left: max(10px, calc(env(safe-area-inset-left, 0px) + 10px));
-      max-width: min(420px, 86vw);
-      padding: 10px 13px 12px;
+      top: max(15px, calc(env(safe-area-inset-top, 0px) + 15px));
+      left: max(15px, calc(env(safe-area-inset-left, 0px) + 15px));
+      max-width: min(630px, 86vw);
+      padding: 15px 20px 18px;
       border: 1px solid rgba(73, 95, 118, 0.62);
-      border-radius: 10px;
+      border-radius: 15px;
       background: rgba(6, 10, 18, 0.78);
-      box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+      box-shadow: 0 6px 28px rgba(0,0,0,0.35);
       color: #e2ecf5;
       pointer-events: none;
       backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
@@ -47,11 +47,11 @@
         0 0 54px rgba(240, 98, 146, 0.10);
       transform: translateZ(0);
     }
-    #tlYear { font-size: 17px; font-weight: 800; color: #ffd166; margin-bottom: 4px; letter-spacing: 0.02em; line-height: 1.2; }
-    #tlEvent { font-size: 14px; line-height: 1.45; color: #d6e6f7; }
+    #tlYear { font-size: 26px; font-weight: 800; color: #ffd166; margin-bottom: 6px; letter-spacing: 0.02em; line-height: 1.2; }
+    #tlEvent { font-size: 21px; line-height: 1.45; color: #d6e6f7; }
     #tlPoetryHint {
-      margin-top: 6px;
-      font-size: 12px; line-height: 1.5; color: #b388ff;
+      margin-top: 9px;
+      font-size: 18px; line-height: 1.5; color: #b388ff;
       font-family: "Kaiti SC","STKaiti","KaiTi","Songti SC",serif;
       font-style: italic; display: none;
     }
@@ -60,92 +60,106 @@
     /* ── Deed popup (bottom-right, avoid poetry card) ── */
     #dkPop {
       position: absolute; z-index: 4;
-      right: max(10px, calc(env(safe-area-inset-right, 0px) + 10px));
-      bottom: calc(max(env(safe-area-inset-bottom, 0px), 10px) + 10px);
-      transform: translateY(40px);
-      width: min(360px, 88vw); max-height: 32vh;
+      right: max(15px, calc(env(safe-area-inset-right, 0px) + 15px));
+      bottom: calc(max(env(safe-area-inset-bottom, 0px), 15px) + 15px);
+      transform: translateY(60px);
+      width: min(540px, 88vw); max-height: 32vh;
       overflow-y: auto; -webkit-overflow-scrolling: touch;
-      padding: 14px 18px;
+      padding: 21px 27px;
       border: 1px solid rgba(240,98,146,0.48);
-      border-radius: 14px;
+      border-radius: 21px;
       background: rgba(7, 11, 20, 0.88);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(240,98,146,0.06);
+      box-shadow: 0 15px 60px rgba(0,0,0,0.45), 0 0 0 1px rgba(240,98,146,0.06);
       color: #e6edf3;
       transition: opacity 0.4s cubic-bezier(0.22,1,0.36,1), transform 0.4s cubic-bezier(0.22,1,0.36,1);
       opacity: 0; pointer-events: none;
       scrollbar-width: thin; scrollbar-color: rgba(240,98,146,0.2) transparent;
     }
-    #dkPop::-webkit-scrollbar { width: 4px; }
-    #dkPop::-webkit-scrollbar-thumb { background: rgba(240,98,146,0.25); border-radius: 4px; }
+    #dkPop::-webkit-scrollbar { width: 6px; }
+    #dkPop::-webkit-scrollbar-thumb { background: rgba(240,98,146,0.25); border-radius: 6px; }
     #dkPop.show { opacity: 1; transform: translateY(0); }
     #dkPop .dk-place {
-      font-size: 18px; font-weight: 800; color: #f06292;
-      margin-bottom: 4px; text-shadow: 0 0 10px rgba(240,98,146,0.25);
+      font-size: 27px; font-weight: 800; color: #f06292;
+      margin-bottom: 6px; text-shadow: 0 0 15px rgba(240,98,146,0.25);
     }
     #dkPop .dk-year {
-      font-size: 13px; font-weight: 700; color: #90caf9;
-      margin-bottom: 8px; letter-spacing: 0.03em;
+      font-size: 20px; font-weight: 700; color: #90caf9;
+      margin-bottom: 12px; letter-spacing: 0.03em;
     }
     #dkPop .dk-body {
-      font-size: 15px; line-height: 1.68; color: rgba(220,230,245,0.92);
+      font-size: 23px; line-height: 1.68; color: rgba(220,230,245,0.92);
       white-space: pre-wrap; font-family: "Kaiti SC","STKaiti","KaiTi","Songti SC",serif;
     }
 
     /* ── Poetry glass card (bottom-left, like a floating scroll) ── */
     #pmCard {
       position: absolute; z-index: 4;
-      bottom: calc(max(env(safe-area-inset-bottom, 0px), 10px) + 10px);
-      left: max(10px, calc(env(safe-area-inset-left, 0px) + 10px));
-      max-width: min(280px, calc(100vw - 24px));
-      padding: 14px 16px 16px;
+      bottom: calc(max(env(safe-area-inset-bottom, 0px), 15px) + 15px);
+      left: max(15px, calc(env(safe-area-inset-left, 0px) + 15px));
+      max-width: min(420px, calc(100vw - 36px));
+      padding: 21px 24px 24px;
       border: 1px solid rgba(240,98,146,0.5);
-      border-radius: 14px;
+      border-radius: 21px;
       background: rgba(10, 14, 24, 0.9);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      box-shadow: 0 15px 60px rgba(0,0,0,0.5);
       backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
       font-family: "Kaiti SC","STKaiti","KaiTi","Songti SC",serif;
       pointer-events: auto;
-      transform: translateY(14px);
+      transform: translateY(21px);
       transition: opacity 0.45s cubic-bezier(0.22,1,0.36,1), transform 0.45s cubic-bezier(0.22,1,0.36,1);
       opacity: 0; visibility: hidden;
     }
     #pmCard.visible { opacity: 1; visibility: visible; transform: translateY(0); }
-    #pmCard .pm-scroll { max-height: min(48vh, 380px); overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: rgba(240,98,146,0.2) transparent; padding-right: 4px; }
-    #pmCard .pm-scroll::-webkit-scrollbar { width: 4px; }
-    #pmCard .pm-scroll::-webkit-scrollbar-thumb { background: rgba(240,98,146,0.25); border-radius: 4px; }
+    #pmCard .pm-scroll { max-height: min(48vh, 570px); overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: thin; scrollbar-color: rgba(240,98,146,0.2) transparent; padding-right: 6px; }
+    #pmCard .pm-scroll::-webkit-scrollbar { width: 6px; }
+    #pmCard .pm-scroll::-webkit-scrollbar-thumb { background: rgba(240,98,146,0.25); border-radius: 6px; }
     #pmCard .pm-era {
-      font-size: 11px; font-weight: 700; color: #f06292;
-      letter-spacing: 0.06em; margin-bottom: 6px; font-family: system-ui, sans-serif; flex-shrink: 0;
+      font-size: 17px; font-weight: 700; color: #f06292;
+      letter-spacing: 0.06em; margin-bottom: 9px; font-family: system-ui, sans-serif; flex-shrink: 0;
     }
     #pmCard .pm-title {
-      font-size: 16px; font-weight: 800; color: #e1bee7;
-      margin-bottom: 10px; line-height: 1.4; text-shadow: 0 0 12px rgba(240,98,146,0.25); flex-shrink: 0;
+      font-size: 24px; font-weight: 800; color: #e1bee7;
+      margin-bottom: 15px; line-height: 1.4; text-shadow: 0 0 18px rgba(240,98,146,0.25); flex-shrink: 0;
     }
     #pmCard .pm-body {
-      font-size: 14.5px; line-height: 2; color: rgba(230,225,240,0.92);
+      font-size: 22px; line-height: 2; color: rgba(230,225,240,0.92);
       white-space: pre-wrap; word-break: keep-all; letter-spacing: 0.04em;
     }
 
     /* ── Place-label Marker (HTML, KaiTi, crisp & readable) ── */
     .wp-lbl {
       font-family: "Kaiti SC","STKaiti","KaiTi","Songti SC","FangSong",serif;
-      font-size: 20px; font-weight: 800; line-height: 1.2;
+      font-size: 30px; font-weight: 800; line-height: 1.2;
       color: #f5f0e8;
       text-shadow: 0 1px 3px rgba(0,0,0,0.82), 0 0 1px rgba(0,0,0,0.6);
       background: rgba(10,15,24,0.65);
-      padding: 2px 8px; border-radius: 4px;
+      padding: 3px 12px; border-radius: 6px;
       white-space: nowrap; pointer-events: none; user-select: none;
       transition: opacity 0.6s ease, filter 0.6s ease, transform 0.55s cubic-bezier(0.22,1,0.36,1);
     }
     .wp-lbl.wp-off { visibility: hidden; opacity: 0; filter: none; transform: translateY(0); }
     .wp-lbl.wp-revealing { visibility: visible; opacity: 0; filter: blur(10px); transform: translateY(5px); }
     .wp-lbl.wp-on { visibility: visible; opacity: 1; filter: blur(0); transform: translateY(0); }
+    .wp-lbl.wp-fading { visibility: visible; opacity: 0.28; filter: blur(3px); transform: translateY(0); transition: opacity 1.2s ease, filter 1.2s ease; }
     .wp-lbl.wp-noprog { transition: none !important; }
+    .wp-lbl.wp-key { color: #f5f0e8; text-shadow: 0 0 10px rgba(255,209,102,0.55), 0 1px 3px rgba(0,0,0,0.82); }
+    .wp-lbl.wp-birth { color: #ff6b8d; }
+    .wp-lbl.wp-death { color: #64b5f6; }
+
+    /* ── Waypoint dot (MapLibre circle layer) ── */
+    .wp-dot {
+      width: 10px; height: 10px;
+      background: rgba(255,255,255,0.7);
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(255,255,255,0.5);
+      pointer-events: none; user-select: none;
+      transition: opacity 0.8s ease;
+    }
 
     /* ── Dynasty-map watermarks (large semi-transparent KaiTi) ── */
     .dyn-wm {
       font-family: "Kaiti SC","STKaiti","KaiTi","Songti SC",serif;
-      font-size: 42px; font-weight: 600; letter-spacing: 0.18em;
+      font-size: 63px; font-weight: 600; letter-spacing: 0.18em;
       color: rgba(200,210,220,0.28);
       text-shadow: 0 0 12px rgba(255,255,255,0.85), 0 0 22px rgba(255,255,255,0.7), 0 1px 3px rgba(255,255,255,0.65);
       pointer-events: none; user-select: none; white-space: nowrap;
@@ -249,23 +263,23 @@
     .viz-video-export #miniPlay,
     .viz-video-export #miniProgress { display: none !important; }
     .viz-video-export #tlHud {
-      top: 28px; left: 28px;
+      top: 42px; left: 42px;
       border: 1px solid rgba(73, 95, 118, 0.72);
       background: rgba(6, 10, 18, 0.85);
       box-shadow: 0 4px 22px rgba(0,0,0,0.45);
     }
     .viz-video-export #pmCard {
-      bottom: 36px; left: 28px;
+      bottom: 54px; left: 42px;
       border: 1px solid rgba(240,98,146,0.55);
       background: rgba(10, 14, 24, 0.92);
     }
     .viz-video-export #dkPop {
-      right: 36px; bottom: 36px;
+      right: 54px; bottom: 54px;
       border: 1px solid rgba(255,209,102,0.35);
       background: rgba(10, 14, 24, 0.88);
     }
     /* Ensure poetry hint visible */
-    .viz-video-export #tlPoetryHint.active { display: block; font-size: 13px; }
+    .viz-video-export #tlPoetryHint.active { display: block; font-size: 20px; }
   </style>
 </head>
 <body>
@@ -369,6 +383,7 @@
     cometHist: [],
     wmMarkers: {},
     wpMarkers: [],
+    wpDotMarkers: [],
     poetryQueue: [],
     poetryTimer: null,
     poetrySeen: new Set(),
@@ -811,38 +826,125 @@
   /* ================================================================
      PLACE LABEL MARKERS
      ================================================================ */
+  /* Key cities that always show their label (never auto-hide) */
+  var KEY_CITY_LABELS = new Set(["章丘","开封","杭州"]);
+  /* Indexes classified: 0=birth, last=death, rest by label content */
+  function wpClass(idx) {
+    if (idx === 0) return "birth";
+    if (idx === S.waypoints.length - 1) return "death";
+    return "normal";
+  }
+  function isKeyCity(label) { return KEY_CITY_LABELS.has(label); }
+
   function initPlaceLabels() {
-    S.wpMarkers.forEach(function (m) { m.remove(); });
+    S.wpMarkers.forEach(function (m) { m.marker.remove(); });
     S.wpMarkers.length = 0;
-    S.waypoints.forEach(function (w) {
+    S.wpDotMarkers.forEach(function (m) { m.remove(); });
+    S.wpDotMarkers.length = 0;
+
+    S.waypoints.forEach(function (w, i) {
+      /* Label marker */
       var el = document.createElement("div");
       el.className = "wp-lbl wp-off";
+      var cls = wpClass(i);
+      if (cls === "birth") el.classList.add("wp-birth");
+      else if (cls === "death") el.classList.add("wp-death");
       el.textContent = w.label;
       var mk = new maplibregl.Marker({ element:el, anchor:"bottom", offset:[0,-6] })
         .setLngLat([w.lng, w.lat]).addTo(S.map);
-      S.wpMarkers.push(mk);
+      S.wpMarkers.push({ marker:mk, cls:cls, idx:i });
+
+      /* Dot marker (small glowing dot on every waypoint) */
+      var dot = document.createElement("div");
+      dot.className = "wp-dot";
+      if (cls === "birth") {
+        dot.style.backgroundColor = "rgba(255,107,141,0.85)";
+        dot.style.width = "12px"; dot.style.height = "12px";
+        dot.style.boxShadow = "0 0 12px rgba(255,107,141,0.65)";
+      } else if (cls === "death") {
+        dot.style.backgroundColor = "rgba(100,181,246,0.85)";
+        dot.style.width = "12px"; dot.style.height = "12px";
+        dot.style.boxShadow = "0 0 12px rgba(100,181,246,0.65)";
+      }
+      var dmk = new maplibregl.Marker({ element:dot, anchor:"center" })
+        .setLngLat([w.lng, w.lat]).addTo(S.map);
+      S.wpDotMarkers.push(dmk);
     });
   }
+
+  /* Reset all labels: only key cities stay visible (faint), rest hidden */
   function hideAllWpLabels() {
     S.wpMarkers.forEach(function (m) {
-      var el = m.getElement();
+      var el = m.marker.getElement();
       el.classList.add("wp-noprog");
-      el.classList.remove("wp-on","wp-revealing"); el.classList.add("wp-off");
+      if (isKeyCity(S.waypoints[m.idx].label)) {
+        el.classList.remove("wp-off","wp-revealing"); el.classList.add("wp-on","wp-key");
+      } else {
+        el.classList.remove("wp-on","wp-revealing","wp-key","wp-fading"); el.classList.add("wp-off");
+      }
     });
     requestAnimationFrame(function () {
-      S.wpMarkers.forEach(function (m) { m.getElement().classList.remove("wp-noprog"); });
+      S.wpMarkers.forEach(function (m) { m.marker.getElement().classList.remove("wp-noprog"); });
     });
   }
+
+  /* Reveal label at idx, fade labels older than the current 3-recent window */
   function revealWpLabel(idx) {
-    if (idx < 0 || idx >= S.wpMarkers.length) return;
-    var el = S.wpMarkers[idx].getElement();
-    el.classList.add("wp-noprog");
-    el.classList.remove("wp-off","wp-on"); el.classList.add("wp-revealing");
-    requestAnimationFrame(function () {
-      el.classList.remove("wp-noprog");
-      void el.offsetWidth;
-      el.classList.remove("wp-revealing"); el.classList.add("wp-on");
+    S.wpMarkers.forEach(function (m) {
+      if (m.idx === idx) {
+        /* Newly revealed: animate in */
+        var el = m.marker.getElement();
+        el.classList.remove("wp-off","wp-fading"); el.classList.add("wp-on");
+        if (m.cls === "birth") el.classList.add("wp-birth");
+        else if (m.cls === "death") el.classList.add("wp-death");
+        return;
+      }
+      /* Skip key cities - they stay visible */
+      if (isKeyCity(S.waypoints[m.idx].label)) return;
+      if (m.idx > idx) return; /* Future waypoints, left hidden */
+      /* Determine if within the rolling 3 window */
+      var recentCount = 0;
+      var inWindow = false;
+      for (var j = idx; j >= 0 && recentCount < 3; j--) {
+        if (isKeyCity(S.waypoints[j].label)) continue;
+        recentCount++;
+        if (j === m.idx) { inWindow = true; break; }
+      }
+      var el = m.marker.getElement();
+      if (inWindow) {
+        el.classList.remove("wp-off","wp-fading"); el.classList.add("wp-on");
+      } else {
+        /* Fade out older labels */
+        el.classList.remove("wp-off","wp-on"); el.classList.add("wp-fading");
+      }
     });
+  }
+
+  /* Final panorama: show only birth (red) and death (blue) labels */
+  function showFinalPanoramaLabels() {
+    S.wpMarkers.forEach(function (m) {
+      var el = m.marker.getElement();
+      el.classList.add("wp-noprog");
+      el.classList.remove("wp-key");
+      if (m.cls === "birth") {
+        el.classList.remove("wp-off","wp-fading"); el.classList.add("wp-on","wp-birth");
+      } else if (m.cls === "death") {
+        el.classList.remove("wp-off","wp-fading"); el.classList.add("wp-on","wp-death");
+      } else {
+        el.classList.remove("wp-on","wp-revealing"); el.classList.add("wp-off");
+      }
+    });
+    requestAnimationFrame(function () {
+      S.wpMarkers.forEach(function (m) { m.marker.getElement().classList.remove("wp-noprog"); });
+    });
+  }
+
+  /* Expose for seek rewind */
+  function restoreLabelsUpTo(idx) {
+    hideAllWpLabels();
+    for (var i = 0; i <= idx; i++) {
+      revealWpLabel(i);
+    }
   }
 
   /* ================================================================
@@ -1120,6 +1222,7 @@
           pushComet(w[i].lng, w[i].lat);
           S.doneSegs = i;
           setProgBar(i / S.totalSegs);
+          restoreLabelsUpTo(i);
         }
         continue;
       }
@@ -1148,7 +1251,9 @@
     await pauseAwareWait(600);
     setProgBar(1);
 
-    /* Panorama pull-out */
+    /* Panorama pull-out — show only birth + death */
+    showFinalPanoramaLabels();
+
     var pts = w.map(function (wp) { return [wp.lng, wp.lat]; });
     var bnd = [[Infinity,Infinity],[-Infinity,-Infinity]];
     pts.forEach(function (p) { bnd[0][0]=Math.min(bnd[0][0],p[0]); bnd[0][1]=Math.min(bnd[0][1],p[1]); bnd[1][0]=Math.max(bnd[1][0],p[0]); bnd[1][1]=Math.max(bnd[1][1],p[1]); });
@@ -1206,10 +1311,10 @@
     S.map.addSource("walked-line", { type:"geojson", data:emptyFC() });
     S.map.addLayer({ id:"walked-line-layer", type:"line", source:"walked-line",
       layout:{"line-cap":"round","line-join":"round"},
-      paint:{"line-color":"#f06292","line-width":3.2,"line-opacity":0.44,"line-blur":0.6} });
+      paint:{"line-color":"#f06292","line-width":4.8,"line-opacity":0.44,"line-blur":0.9} });
     S.map.addLayer({ id:"walked-line-glow", type:"line", source:"walked-line",
       layout:{"line-cap":"round","line-join":"round"},
-      paint:{"line-color":"#f06292","line-width":9,"line-opacity":0.12,"line-blur":2.4} });
+      paint:{"line-color":"#f06292","line-width":14,"line-opacity":0.12,"line-blur":3.6} });
 
     S.map.addSource("mover-comet", { type:"geojson", data:emptyFC() });
     S.map.addLayer({ id:"mover-comet-circles", type:"circle", source:"mover-comet",
@@ -1224,11 +1329,11 @@
 
     S.map.addSource("mover-point", { type:"geojson", data:emptyFC() });
     S.map.addLayer({ id:"mover-point-c", type:"circle", source:"mover-point",
-      paint:{"circle-radius":7.8,"circle-color":"#ff6b8d","circle-opacity":0.92,
-        "circle-stroke-width":2.2,"circle-stroke-color":"#fff","circle-stroke-opacity":0.86} });
+      paint:{"circle-radius":11,"circle-color":"#ff6b8d","circle-opacity":0.92,
+        "circle-stroke-width":3,"circle-stroke-color":"#fff","circle-stroke-opacity":0.86} });
     S.map.addLayer({ id:"mover-point-glow", type:"circle", source:"mover-point",
-      paint:{"circle-radius":16,"circle-color":"rgba(240,98,146,0.5)","circle-opacity":0.38,
-        "circle-blur":3,"circle-stroke-width":0} });
+      paint:{"circle-radius":24,"circle-color":"rgba(240,98,146,0.5)","circle-opacity":0.38,
+        "circle-blur":4,"circle-stroke-width":0} });
 
     S.map.addSource("mig-flow", { type:"geojson", data:emptyFC() });
     S.map.addLayer({ id:"mig-flow-dots", type:"circle", source:"mig-flow",
@@ -1265,7 +1370,6 @@
       }
     };
 
-    var IS_VIDEO_EXPORT = document.documentElement.classList.contains("viz-video-export");
     var IS_AUTOPLAY = IS_VIDEO_EXPORT && (function () {
       try { return new URLSearchParams(location.search).get("autoplay") === "1"; } catch (_) { return false; }
     })();
@@ -1292,20 +1396,6 @@
     }
 
     /* Begin loop */
-<<<<<<< Updated upstream
-    S.map.once("idle", async function () {
-      if (IS_VIDEO_EXPORT) {
-        /* One-shot video export */
-        try { await runSequence(); } catch (e) { console.warn("runSequence error", e); }
-        /* Final hold then signal done */
-        await wait(3000);
-        window.__POET_VIZ_DONE__ = true;
-        return;
-      }
-      for (;;) {
-        try { await runSequence(); } catch (e) { console.warn("runSequence error", e); await wait(2000); }
-        await wait(LOOP_GAP_MS);
-=======
     var INITIAL_WAIT_MS = IS_AUTOPLAY ? 3500 : 0;
     S._loopStarted = false;
     function startLoop() {
@@ -1315,7 +1405,6 @@
         setTimeout(function () { runLoop(); }, INITIAL_WAIT_MS);
       } else {
         runLoop();
->>>>>>> Stashed changes
       }
     }
     async function runLoop() {

@@ -16,8 +16,8 @@ import path from "node:path";
 import http from "node:http";
 
 /* ── 配置 ── */
-const WIDTH = 720;
-const HEIGHT = 1280;
+const WIDTH = 1080;
+const HEIGHT = 1920;
 const FPS = 24;
 const STATIC_DIR = path.resolve(process.cwd(), "viz");
 const PAGE_URL = `/liqz-cinematic.html?video=1&autoplay=1`;

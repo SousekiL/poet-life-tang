@@ -195,6 +195,10 @@
 (function () {
   "use strict";
 
+  /* ── URL params (video export mode) ── */
+  const qp = new URLSearchParams(location.search);
+  const IS_VIDEO_EXPORT = qp.get("video") === "1";
+
   /* ================================================================
      CONSTANTS
      ================================================================ */
@@ -1034,6 +1038,11 @@
 
     /* Wire mini play/pause */
     var miniP = document.getElementById("miniPlay");
+    var progWrap = document.getElementById("miniProgress");
+    if (IS_VIDEO_EXPORT) {
+      miniP.style.display = "none";
+      progWrap.style.display = "none";
+    }
     miniP.onclick = function () {
       S.paused = !S.paused;
       miniP.textContent = S.paused ? "▶" : "⏸";
@@ -1062,6 +1071,14 @@
 
     /* Begin loop */
     S.map.once("idle", async function () {
+      if (IS_VIDEO_EXPORT) {
+        /* One-shot video export */
+        try { await runSequence(); } catch (e) { console.warn("runSequence error", e); }
+        /* Final hold then signal done */
+        await wait(3000);
+        window.__POET_VIZ_DONE__ = true;
+        return;
+      }
       for (;;) {
         try { await runSequence(); } catch (e) { console.warn("runSequence error", e); await wait(2000); }
         await wait(LOOP_GAP_MS);

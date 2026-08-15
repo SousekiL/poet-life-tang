@@ -1,91 +1,90 @@
-# poet-life-tang
+# Tang-networks
 
-唐宋诗人迁移可视化项目（618–1279）。以交互式地图展示唐、宋诗人生平行迹，叠加 CHGIS Hartwell 历史疆域轮廓，支持时间轴播放、VIP 诗人专题连播与竖屏视频录制。
+唐代重要人物社会关系网络项目。以 CBDB（中国历代人物传记资料库）为主要数据来源，围绕约 100 位知名度较高的唐代人物，建立可追溯的人物与关系数据，并形成静态和交互式网络可视化。
+
+## 项目目标
+
+- **人物范围**：唐代（618–907）人物，目标规模约 100 人（根据数据质量调整）
+- **数据产出**：人物表、关系表、关系类型与证据字段
+- **可视化**：静态网络图（优先）→ 交互式网络图
+- **可追溯性**：保留来源、处理过程和数据口径
 
 ## 快速开始
 
 ```bash
-# 前端预览（纯静态，无需构建）
-cd viz && python3 -m http.server 8765
-# → http://127.0.0.1:8765/index.html         主图
-# → http://127.0.0.1:8765/vip-path-trilogy.html  李白→苏轼→李清照专题
+# 安装依赖
+pip install -r requirements.txt
 
-# 数据管线（由 sqlite 生成前端 JSON）
-python3 scripts/build_tang_trajectories.py
+# 从 CBDB 提取唐代人物数据
+python scripts/extract_cbdb.py
 
-# 重建 Hartwell 朝代外廓
-python3 scripts/build_hartwell_dynasty_outlines.py
+# 构建关系网络
+python scripts/build_network.py
 
-# 视频录制（需先启动预览服务）
-npm install && npx playwright install chromium
-npm run record:viz-video -- --seconds 120
+# 生成静态网络可视化
+python viz/static/generate_network.py
 ```
 
 ## 目录结构
 
 ```
-poet-life-tang/
-├── viz/                          # 纯前端（静态 HTML + MapLibre GL JS）
-│   ├── index.html                # 主图页面
-│   ├── app.js                    # 核心应用逻辑
-│   ├── vip-path-trilogy.html     # 李白→苏轼→李清照三人连播专题
-│   ├── vip-path-trilogy.js       # 专题脚本
-│   ├── liqz-cinematic.html       # 李清照导演版
-│   ├── maplibre-liqz-camera-demo.html   # 李清照镜头演示
-│   ├── maplibre-sushi-camera-demo.html  # 苏轼镜头演示
-│   └── data/
-│       ├── trajectories.json             # 诗人轨迹（由 build_tang_trajectories.py 生成）
-│       └── hartwell_dynasty_outlines.json # Hartwell 朝代外廓
-├── scripts/                      # 数据处理脚本
-│   ├── fetch_poetlife.py                # 从 cnkgraph.com 拉取诗人数据
-│   ├── build_tang_trajectories.py       # sqlite → trajectories.json
-│   ├── build_hartwell_dynasty_outlines.py # Hartwell Shapefile → WGS84 GeoJSON
-│   ├── build_chgis_territory.py         # CHGIS v6 → 唐/宋疆域 GeoJSON（可选）
-│   ├── preview_chgis_maps.py            # CHGIS 预览 SVG
-│   ├── preview_hartwell_chin_maps.py    # Hartwell 预览 SVG
-│   ├── validate_trajectory_samples.py   # 轨迹数据校验
-│   ├── record-poet-viz-video.mjs        # Playwright 竖屏录制
-│   ├── discover_endpoints.md            # cnkgraph API 文档
-│   └── trajectory_rules.md              # 轨迹构建规则
-├── CHGIS/                        # 中国历史地理信息系统数据
-│   ├── extracted/                 # CHGIS v6 州级时序面（Shapefile）
-│   ├── v1_Hartwell_2002/          # Hartwell 原始数据（741/1080/1200）
-│   ├── v5_Hartwell/               # Hartwell v5 省/府/县边界（~2500 文件）
-│   └── preview/                   # SVG/PNG 预览图
-├── data/
-│   ├── schema.json               # 诗人数据导出 JSON Schema
-│   ├── admin/prefecture_overrides.sample.csv  # 府级覆盖样例
-│   └── out/                      # API 拉取输出（fetch.log / poetlife_flat.sqlite）
-└── output/                       # 视频录制输出
+tang-networks/
+├── data/                          # 数据目录
+│   ├── raw/                       # 原始数据（CBDB 导出等）
+│   ├── processed/                 # 处理后的数据
+│   │   ├── people.csv             # 人物表
+│   │   ├── relationships.csv      # 关系表
+│   │   └── network.json           # 网络数据（可视化用）
+│   └── dictionaries/              # 数据字典与映射表
+├── scripts/                       # 数据处理脚本
+│   ├── extract_cbdb.py            # 从 CBDB 提取数据
+│   ├── build_network.py           # 构建关系网络
+│   └── quality_check.py           # 数据质量检查
+├── viz/                           # 可视化
+│   ├── static/                    # 静态网络图
+│   └── interactive/               # 交互式网络图
+├── docs/                          # 文档
+│   ├── methodology.md             # 方法论
+│   └── data_dictionary.md         # 数据字典
+├── _archive/                      # 旧项目归档
+│   └── poet-life-tang/            # 唐宋诗人迁移可视化项目（归档）
+├── README.md
+├── AGENTS.md
+└── requirements.txt
 ```
+
+## 数据来源
+
+- **主要数据**：CBDB（中国历代人物传记资料库）`cbdb202409.db`
+- **数据路径**：`/Users/sousekilyu/Documents/Data/biography_literature_CBDB_china_historical/`
 
 ## 技术栈
 
 | 层级 | 技术 |
 |------|------|
-| 前端地图 | MapLibre GL JS（主图）、Leaflet（部分页面） |
-| 前端 | 原生 JavaScript（无 bundler）、Bootstrap CSS |
-| 数据处理 | Python 3（pyshp、shapely、pyproj、httpx） |
-| GIS 数据 | CHGIS v5/v6、Hartwell Dataset、Shapefile、GeoJSON |
-| 视频录制 | Playwright（Node.js） |
-| 底图 | Carto Light（无标注） + 阿里云中国省界 |
+| 数据处理 | Python 3（sqlite3, pandas, networkx） |
+| 静态可视化 | matplotlib, networkx |
+| 交互式可视化 | D3.js / Sigma.js（待定） |
+| 数据存储 | CSV, JSON |
 
-## 数据来源
+## 关键约束
 
-- 诗人行迹数据：[唐宋文学编年地图](https://cnkgraph.com/Map/PoetLife)（cnkgraph.com）
-- 历史疆域：CHGIS Version 5/6（Hartwell China Historical GIS）
-- API 接口文档见 `scripts/discover_endpoints.md`
+1. **人物筛选**：明确筛选标准，区分直接证据与推断关系
+2. **关系判定**：区分关系类型（亲属、师友、同僚等），标注证据来源
+3. **不确定关系**：用概率或置信度标记，不混入确定关系
+4. **数据可追溯**：每条关系记录来源和处理过程
 
-数据仅限非商业研究与学习用途，批量使用前应联系运营方。
+## 归档说明
 
-## URL 参数
+旧项目（唐宋诗人迁移可视化）完整归档于 `_archive/poet-life-tang/`，包括：
+- `viz/` — 交互式地图可视化
+- `scripts/` — 数据处理脚本
+- `data/` — 诗人轨迹数据
+- `CHGIS/` — 历史地理数据
+- `output/` — 视频录制输出
 
-| 参数 | 效果 |
-|------|------|
-| `?video=1` | 竖屏录屏模式（隐藏顶栏、VIP dock、HUD） |
-| `?autoplay=1` | 自动播放（配合 video 模式） |
-| `?mapbox=token` | MapLibre 地形 token（镜头演示页可选） |
+如需恢复旧项目，可从归档目录直接复制。
 
 ## 许可证
 
-本项目基于非商业研究目的创作。诗人数据版权归属 cnkgraph.com / 搜韵网；CHGIS 数据按 CHGIS 许可用于学术/非商业用途。
+数据仅限非商业研究与学习用途。CBDB 数据按其许可协议使用。

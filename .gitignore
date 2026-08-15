@@ -1,18 +1,43 @@
-CHGIS/extracted/
-CHGIS/preview/
-CHGIS/.venv/
-.venv-hartwell/
+# Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+.venv/
+venv/
+.env
+
+# Data files (large, not tracked)
+data/raw/*.db
+data/raw/*.sqlite
+data/raw/*.csv
+data/raw/*.xlsx
+
+# OS
 .DS_Store
+Thumbs.db
 
-# Dependencies / build output
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node
 node_modules/
-output/
+npm-debug.log*
 
-# Large local media (root目录录屏/成片；如需入库请改用 Git LFS)
+# Output
+output/
 *.mov
 *.mp4
+*.webm
 
-# Raw GIS data — not tracked
-/CHGIS/
+# Archive (keep structure, ignore large files)
+_archive/poet-life-tang/output/
+_archive/poet-life-tang/node_modules/
+_archive/poet-life-tang/.venv-hartwell/
+_archive/poet-life-tang/CHGIS/
+_archive/poet-life-tang/hyperframes-liqz/

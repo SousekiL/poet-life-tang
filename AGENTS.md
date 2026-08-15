@@ -1,67 +1,69 @@
 # AGENTS.md
 
-唐宋诗人迁移可视化项目（618–1279）。面向后续 OpenCode 代理，记录代码基事实与操作规范。
+唐代重要人物社会关系网络项目（Tang-networks）。面向后续代理，记录代码基事实与操作规范。
 
 ## 项目 DNA
 
-- **viz/ 是纯前端**（静态 HTML + MapLibre GL JS / Leaflet IIFE，无 bundler），`viz/index.html` 为主图，`viz/vip-path-trilogy.html` 为李白→苏轼→李清照三人连播专题。
-- **时间轴** `T0=618`, `T1=1279`，播放速率由 `PLAYBACK_DIVISOR = 270`（`app.js`）控制。
-- **轨迹数据** `viz/data/trajectories.json` 由 `scripts/build_tang_trajectories.py` 从 `data/out/poetlife_flat.sqlite` 生成；不要手改。
-- **Hartwell 朝代外廓** `viz/data/hartwell_dynasty_outlines.json`（**v4+**：`borderHard` / `borderSoft` 线 + `borderChinaFade` 面）由 `scripts/build_hartwell_dynasty_outlines.py` 生成；与今中国陆地国界重合的朝代外缘从 **soft 线**中剔除，用 **国界外侧淡色面**示意可能外延；主图、`vip-path-trilogy.js`、`maplibre-liqz-camera-demo.html` 共用切片键；缺 `border*` 时回退旧「面描边」单层。
-- `viz/data/` 下还有 `*_territory.geojson`（tang/song_beisong/song_nansong）是**遗留构建产物，前端不再 fetch**；不要误以为它们在用。
-- **数据源**：`scripts/fetch_poetlife.py` 从 `cnkgraph.com` 拉取（仅限非商业研究用途）。详细 API 见 `scripts/discover_endpoints.md`。
+- **数据源**：CBDB（中国历代人物传记资料库）`cbdb202409.db`，路径 `/Users/sousekilyu/Documents/Data/biography_literature_CBDB_china_historical/`
+- **人物范围**：唐代（618–907）人物，目标约 100 人
+- **核心产出**：人物表（`data/processed/people.csv`）、关系表（`data/processed/relationships.csv`）、网络数据（`data/processed/network.json`）
+- **可视化**：静态网络图优先，再做交互式
+
+## CBDB 关键表
+
+| 表名 | 用途 |
+|------|------|
+| `BIOG_MAIN` | 人物主表（姓名、字号、生卒年、籍贯） |
+| `ASSOC_DATA` | 关系数据（人物间关系记录） |
+| `ASSOC_CODES` | 关系类型编码 |
+| `KIN_DATA` | 亲属关系 |
+| `BIOG_ADDR_DATA` | 人物地址关联 |
+| `BIOG_INST_DATA` | 人物机构关联 |
+| `ENTRY_DATA` | 入仕记录 |
+| `STATUS_DATA` | 身份状态 |
+| `DYNASTIES` | 朝代信息 |
 
 ## 关键约束（改前必读）
 
-1. **`frame()` 内的播放逻辑顺序不要动**——先保播放稳定。
-2. **`HIST_EVENTS` 和 `CITY_ERAS` 仍硬编码在 `app.js`**（~205 行起 / ~101 行起），必须保持按年升序；同年事件合并为单条文案。
-3. **VIP 诗人**：名单为 14 位宋代人物（`VIP_PALETTE`），出生/卒年分区展示（`vipDockBirth`/`vipDockDeath`）；同年错峰用 `VIP_CAPTION_STAGGER_MS`。改动时保持 `ensureVipDockSlots` / `pushVipDockCard` / `clearAllVipCaptions` 行为一致，关注 reset / scrub / playback-end 分支。
-4. **李清照诗词叠层（trilogy 页 `LIQZ_POETRY_TRIGGERS`）**：
-   - `freezeTimeline === true` 仅当「当前词之后 `queue` 仍有下一首」；最后一首或单首触发**不**冻结 `playU`。
-   - 展示时 `#mapStage` 加 `has-poem-dock` 类收窄 `#phaseHud`，`hidePoemDock`/`abortPoetryForScrub`/`finishPoetrySession` 必须清掉。
-5. **不要默认恢复疆域叠层**——除非明确用户需求。
+1. **人物筛选标准**：唐代知名人物，需有足够关系数据支撑网络构建
+2. **关系类型**：区分亲属、师友、同僚、政治关系等，每条关系标注证据来源
+3. **不确定关系**：用置信度标记，不混入确定关系
+4. **数据可追溯**：每条记录保留 CBDB 原始 ID 和来源信息
 
 ## 精确命令
 
 ```bash
-# 前端预览
-cd viz && python3 -m http.server 8765
-# → http://127.0.0.1:8765/index.html
-# → http://127.0.0.1:8765/vip-path-trilogy.html
+# 安装依赖
+pip install -r requirements.txt
 
-# 重建轨迹数据
-python3 scripts/build_tang_trajectories.py --tang-lo 618 --tang-hi 1279 --output viz/data/trajectories.json
+# 从 CBDB 提取唐代人物数据
+python scripts/extract_cbdb.py
 
-# 重建 Hartwell 朝代外廓
-python3 scripts/build_hartwell_dynasty_outlines.py
+# 构建关系网络
+python scripts/build_network.py
 
-# 校验
-python3 scripts/validate_trajectory_samples.py
-node --check viz/vip-path-trilogy.js
+# 数据质量检查
+python scripts/quality_check.py
 
-# 视频录制（需先启动预览服务）
-npm install && npx playwright install chromium
-npm run record:viz-video -- --seconds 120
+# 生成静态网络可视化
+python viz/static/generate_network.py
 ```
 
-## URL 参数
+## 数据处理流程
 
-- `?video=1` — 竖屏录屏模式（隐藏顶栏、VIP dock、HUD 等），配合 `&autoplay=1` 自动播放。
-- 录制脚本默认打开 `http://127.0.0.1:8765/index.html?video=1&autoplay=1`。
-
-## 脚本依赖
-
-| 脚本 | 用途 | 注意 |
-|------|------|------|
-| `build_tang_trajectories.py` | 核心：sqlite → trajectories.json | 读 `data/out/poetlife_flat.sqlite` |
-| `build_hartwell_dynasty_outlines.py` | Hartwell .prj → WGS84 GeoJSON | 需 `pyproj` |
-| `build_chgis_territory.py` | CHGIS → GeoJSON（可选） | 需 `pyshp`+`shapely` |
-| `fetch_poetlife.py` | cnkgraph API 拉取（可选） | 需 `httpx` |
-| `record-poet-viz-video.mjs` | Playwright 竖屏录制 | 输出 `./output/viz-{timestamp}/` |
+1. **提取**：从 CBDB 提取唐代人物及其关系数据
+2. **清洗**：去重、标准化姓名、处理缺失值
+3. **构建**：建立人物-关系网络数据结构
+4. **验证**：质量检查、边界案例处理
+5. **输出**：生成 CSV/JSON 数据文件和可视化
 
 ## 已知技术债
 
-- `HIST_EVENTS` 和 `CITY_ERAS` 硬编码 → 抽到 `viz/data/` 的外部 JSON 是推荐的第一改进。
-- 缺任何自动化测试。
-- CHGIS 生成脚本存在但前端未用，容易产生认知误导。
-- `viz/data/*_territory.geojson` 为遗留产物，前端不再消费。
+- 人物筛选标准待细化
+- 关系判定规则待完善
+- 交互式可视化技术栈待选定
+- 缺少自动化测试
+
+## 归档说明
+
+旧项目（唐宋诗人迁移可视化）完整归档于 `_archive/poet-life-tang/`，如需恢复可从归档目录复制。

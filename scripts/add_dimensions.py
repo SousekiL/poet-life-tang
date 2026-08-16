@@ -206,7 +206,14 @@ def analyze_relationship_types(persons, rels, label):
     return {"label": label, "analysis": type_analysis}
 
 def analyze_reign_periods(persons, rels, label):
-    """Analyze persons by emperor reign periods."""
+    """Analyze persons by emperor reign periods.
+    
+    Rule: A person belongs to a period if their life span (birth to death)
+    overlaps with that period. Overlap means: birth <= period_end AND death >= period_start.
+    If only birth is known, include if birth <= period_end.
+    If only death is known, include if death >= period_start.
+    A person can appear in multiple periods (non-exclusive).
+    """
     # Get birth/death years
     person_years = {}
     for pid, p in persons.items():
@@ -235,17 +242,18 @@ def analyze_reign_periods(persons, rels, label):
             continue
         
         for period_id, nianhao, start, end, emperor in TANG_REIGN_PERIODS:
-            # Person overlaps with this period if:
-            # - born before period ends AND (died after period starts OR death unknown)
-            # OR
-            # - born during the period
+            # Person overlaps with this period if their life span overlaps
+            # Overlap: birth <= period_end AND death >= period_start
             overlap = False
             if birth is not None and death is not None:
+                # Both known: standard overlap check
                 overlap = birth <= end and death >= start
             elif birth is not None:
-                overlap = birth <= end and birth >= start - 50  # Assume ~50 year lifespan
+                # Only birth known: include if born before or during period
+                overlap = birth <= end
             elif death is not None:
-                overlap = death >= start and death <= end + 50
+                # Only death known: include if died during or after period start
+                overlap = death >= start
             
             if overlap:
                 period_persons[(period_id, nianhao, start, end, emperor)].add(pid)

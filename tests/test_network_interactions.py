@@ -63,6 +63,13 @@ class NetworkInteractionTest(unittest.TestCase):
         self.assertGreater(initial["edges"], 0)
         self.assertEqual(initial["nodes"], initial["dom_nodes"])
         self.assertEqual(initial["edges"], initial["dom_edges"])
+        self.assertTrue(self.page.locator("#label-toggle").is_checked())
+        self.assertGreater(self.page.locator("#graph .node-label").count(), 0)
+
+        self.page.locator("#label-toggle-control").click()
+        self.assertEqual(self.page.locator("#graph .node-label").count(), 0)
+        self.page.locator("#label-toggle-control").click()
+        self.assertGreater(self.page.locator("#graph .node-label").count(), 0)
 
         self.select_person("杜甫")
         searched = self.stats()
@@ -71,6 +78,13 @@ class NetworkInteractionTest(unittest.TestCase):
         self.assertEqual(searched["nodes"], searched["dom_nodes"])
         self.assertEqual(searched["edges"], searched["dom_edges"])
         self.assertAlmostEqual(searched["zoom"], 3, places=2)
+        self.assertIn(
+            "杜甫",
+            self.page.locator("#graph .node-label").all_text_contents(),
+        )
+        screenshot = os.environ.get("NETWORK_SCREENSHOT")
+        if screenshot:
+            self.page.screenshot(path=screenshot)
 
         self.page.evaluate(
             """

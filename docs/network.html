@@ -12,6 +12,14 @@ body { background: #0d1117; color: #e6edf3; font-family: 'PingFang SC','Microsof
 
 #sidebar { width: 340px; min-width: 340px; background: #161b22; border-right: 1px solid #30363d; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
 #sidebar h1 { font-size: 18px; font-weight: 700; color: #e6edf3; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
+#label-toggle-control { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; color: #8b949e; font-size: 12px; cursor: pointer; user-select: none; }
+#label-toggle { position: absolute; opacity: 0; }
+.toggle-track { position: relative; width: 30px; height: 16px; border-radius: 999px; background: #30363d; transition: background 0.2s ease-out; }
+.toggle-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #8b949e; transition: transform 0.2s ease-out, background 0.2s ease-out; }
+#label-toggle:checked + .toggle-track { background: #1f6feb; }
+#label-toggle:checked + .toggle-track::after { background: #e6edf3; transform: translateX(14px); }
+#label-toggle:focus-visible + .toggle-track { outline: 2px solid #58a6ff; outline-offset: 2px; }
+.node-label { pointer-events: none; fill: #e6edf3; font-family: 'Palatino Linotype', Palatino, 'Songti SC', STSong, serif; font-size: 12px; font-weight: 600; paint-order: stroke; stroke: #0d1117; stroke-width: 3px; stroke-linejoin: round; }
 
 #search-wrap { position: relative; }
 #search-box { width: 100%; padding: 10px 14px 10px 32px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 14px; outline: none; }
@@ -84,6 +92,11 @@ svg { width: 100%; height: 100%; }
 <div id="app">
   <div id="sidebar">
     <h1>唐代人物关系网络</h1>
+    <label id="label-toggle-control" title="显示或隐藏重要人物姓名">
+      <input type="checkbox" id="label-toggle" role="switch" aria-label="显示重要人物姓名标签" checked>
+      <span class="toggle-track" aria-hidden="true"></span>
+      <span>重要人物姓名</span>
+    </label>
     <div id="search-wrap">
       <span id="search-icon">🔍</span>
       <input type="text" id="search-box" placeholder="输入姓名或拼音，选择人物作为主人公..." autocomplete="off">
@@ -123,7 +136,7 @@ svg { width: 100%; height: 100%; }
     <div id="stats">显示: <span id="stat-visible">0</span> 人 / <span id="stat-edges">0</span> 条关系<br>总计: <span id="stat-total">0</span> 人</div>
   </div>
   <div id="canvas-wrap">
-    <svg id="graph"></svg>
+    <svg id="graph" role="img" aria-label="唐代重要人物社会关系网络；节点表示人物，连线表示人物关系"></svg>
     <div id="tooltip"><div class="name"></div><div class="detail"></div></div>
     <div id="edge-tooltip"><div class="rel-title"></div><div class="rel-list"></div></div>
     <div id="legend">
@@ -157,6 +170,8 @@ const DEGREE_BUCKETS = ['0 (孤立)','1-2','3-5','6-10','11-20','20+'];
 const DEGREE_COLORS = {'0 (孤立)':'#484f58','1-2':'#8b949e','3-5':'#58a6ff','6-10':'#a371f7','11-20':'#f0883e','20+':'#f85149'};
 const ROLE_COLORS = {core:'#58a6ff',bridge:'#a371f7'};
 const ROLE_LABELS = {core:'核心人物',bridge:'桥接人物'};
+const FEATURED_NAME_PARTS = ['李白','杜甫','王維','白居易','韓愈','柳宗元','劉禹錫','李商隱','杜牧','孟浩然','王昌齡','岑參','高適','元稹','李賀','王勃','陳子昂','賀知章','張九齡','王之渙','溫庭筠','李世民','武曌','武則天','李隆基','狄仁傑','魏徵'];
+const MAX_CENTRAL_LABELS = 12;
 
 const DYNASTY_ERA_MAP = {'隋':'初唐','南梁':'初唐','周':'盛唐','南唐':'晚唐','吳越':'晚唐','後唐':'晚唐','前蜀':'晚唐','後梁':'晚唐','吳(楊)':'晚唐','宋':'晚唐'};
 
@@ -176,7 +191,8 @@ let allNodes=[], allEdges=[], nodeMap={};
 let filters = {era:new Set(), rel_type:new Set(), degree:new Set(), gender:new Set(), role:new Set()};
 let selectedNodes = new Set();
 let protagonistId = null;
-let simulation, svg, background, g, linkG, nodeG, zoom;
+let labelsVisible = true;
+let simulation, svg, background, g, linkG, nodeG, labelG, zoom;
 
 const FILTER_DEFS = {
   era: { colors: ERA_COLORS, labelKey: null },
@@ -300,6 +316,24 @@ function getVisibleEdges(visibleIds) {
   });
 }
 
+function personLabel(node) { return node.name.replace(/（.*?）/g,''); }
+function getLabeledNodes(visibleNodes) {
+  if(!labelsVisible) return [];
+  const labelIds = new Set();
+  visibleNodes.forEach(n => { if(FEATURED_NAME_PARTS.some(name => n.name.includes(name))) labelIds.add(n.id); });
+  let candidates = visibleNodes.filter(n => n.role === 'core');
+  if(!candidates.length) candidates = visibleNodes;
+  candidates.slice().sort((a,b) => b.degree-a.degree || a.id-b.id).slice(0,MAX_CENTRAL_LABELS).forEach(n => labelIds.add(n.id));
+  if(protagonistId && visibleNodes.some(n => n.id === protagonistId)) labelIds.add(protagonistId);
+  return visibleNodes.filter(n => labelIds.has(n.id));
+}
+
+function renderLabels(visibleNodes) {
+  const labels = labelG.selectAll('text.node-label').data(getLabeledNodes(visibleNodes), d=>d.id);
+  labels.exit().remove();
+  labels.enter().append('text').attr('class','node-label').attr('aria-hidden','true').text(personLabel).merge(labels);
+}
+
 function applyFilters() {
   const visibleNodes = getVisibleNodes();
   const visibleIds = new Set(visibleNodes.map(n=>n.id));
@@ -318,6 +352,8 @@ function applyFilters() {
     })
     .attr('stroke', d => { if(protagonistId&&d.id===protagonistId) return '#ffd700'; return d.role==='core'?'#21262d':'transparent'; })
     .attr('stroke-width', d => { if(protagonistId&&d.id===protagonistId) return 3; return d.role==='core'?1:0; });
+
+  renderLabels(visibleNodes);
 
   const edges = linkG.selectAll('line').data(visibleEdges, d=>{ const [sid,tid]=edgeIds(d); return `${sid}-${tid}-${d.rel_type}`; });
   edges.exit().transition().duration(300).attr('opacity',0).remove();
@@ -348,17 +384,19 @@ function initGraph() {
   zoom = d3.zoom().scaleExtent([0.1,8]).on('zoom', e=>g.attr('transform',e.transform));
   svg.call(zoom);
   background = svg.append('rect').attr('class','graph-background').attr('width',w).attr('height',h).attr('fill','transparent').on('click',resetNetworkView);
-  g = svg.append('g'); linkG = g.append('g'); nodeG = g.append('g');
+  g = svg.append('g'); linkG = g.append('g'); nodeG = g.append('g'); labelG = g.append('g');
 
   const visibleNodes = getVisibleNodes(); const visibleIds = new Set(visibleNodes.map(n=>n.id)); const visibleEdges = getVisibleEdges(visibleIds);
   linkG.selectAll('line').data(visibleEdges).join('line').attr('stroke',d=>REL_COLORS[d.rel_type]||'#30363d').attr('stroke-width',0.8).attr('opacity',0.45).on('mouseover',showEdgeTooltip).on('mouseout',hideEdgeTooltip);
   nodeG.selectAll('circle').data(visibleNodes).join('circle').attr('r',d=>nodeRadius(d)).attr('fill',d=>GENDER_COLORS[d.gender]||'#484f58').attr('stroke',d=>d.role==='core'?'#21262d':'transparent').attr('stroke-width',d=>d.role==='core'?1:0).attr('opacity',d=>d.role==='core'?0.95:0.5).on('mouseover',showTooltip).on('mouseout',hideTooltip).on('click',highlightConnected).call(d3.drag().on('start',dragStarted).on('drag',dragged).on('end',dragEnded));
+  renderLabels(visibleNodes);
 
   simulation = d3.forceSimulation(visibleNodes).force('link',d3.forceLink(visibleEdges).id(d=>d.id).distance(60).strength(0.3)).force('charge',d3.forceManyBody().strength(-120)).force('center',d3.forceCenter(w/2,h/2)).force('collision',d3.forceCollide().radius(d=>nodeRadius(d)+2)).on('tick',tick);
 
   document.getElementById('zoom-in').onclick = ()=>svg.transition().call(zoom.scaleBy,1.5);
   document.getElementById('zoom-out').onclick = ()=>svg.transition().call(zoom.scaleBy,0.67);
   document.getElementById('zoom-reset').onclick = resetNetworkView;
+  document.getElementById('label-toggle').addEventListener('change', event=>{ labelsVisible=event.target.checked; renderLabels(getVisibleNodes()); });
 
   const legendRels = document.getElementById('legend-rels');
   Object.entries(REL_LABELS).forEach(([key,label]) => { const div=document.createElement('div'); div.className='item'; div.innerHTML=`<span style="background:${REL_COLORS[key]};width:10px;height:10px;border-radius:50%;display:inline-block"></span>${label}`; legendRels.appendChild(div); });
@@ -374,7 +412,7 @@ function resetNetworkView() {
   svg.interrupt().transition().duration(500).call(zoom.transform,d3.zoomIdentity);
 }
 
-function tick() { linkG.selectAll('line').attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y); nodeG.selectAll('circle').attr('cx',d=>d.x).attr('cy',d=>d.y); }
+function tick() { linkG.selectAll('line').attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y); nodeG.selectAll('circle').attr('cx',d=>d.x).attr('cy',d=>d.y); labelG.selectAll('text.node-label').attr('x',d=>d.x+nodeRadius(d)+4).attr('y',d=>d.y+4); }
 
 function showTooltip(event,d) {
   const tip = document.getElementById('tooltip');

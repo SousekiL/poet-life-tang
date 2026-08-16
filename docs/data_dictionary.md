@@ -4,13 +4,20 @@
 
 | 文件 | 说明 |
 |------|------|
-| `data/persons.csv` | 人物表（128 人） |
-| `data/relationships.csv` | 关系表（561 条） |
+| `data/persons.csv` | Layer 1 核心人物表（128 人） |
+| `data/relationships.csv` | 原始关系记录（未去重，含完整溯源字段） |
+| `data/relationships_layer1.csv` | Layer 1 聚合边（含 evidence_list） |
+| `data/persons_layer2.csv` | Layer 2 桥接人物表 |
+| `data/relationships_layer2.csv` | Layer 2 桥接关系边 |
+| `data/persons_combined.csv` | 合并人物表（核心 + 桥接） |
+| `data/relationships_combined.csv` | 合并关系边 |
 | `data/quality_report.md` | 质量检查报告 |
-| `scripts/extract_persons_and_relationships.py` | 数据提取脚本 |
-| `stage_outputs/tang_figures_v2.csv` | 阶段1产出：人物清单（输入） |
-| `stage_outputs/relationship_types.csv` | 阶段2产出：关系类型定义（输入） |
-| `stage_outputs/tang_relationship_rules.md` | 阶段2产出：关系规则文档（输入） |
+| `scripts/extract_persons_and_relationships.py` | 数据提取脚本（Layer 0） |
+| `scripts/build_network_layers.py` | 网络层构建脚本（Layer 1/2/Combined） |
+| `scripts/quality_check.py` | 质量检查脚本 |
+| `scripts/analyze_bridge.py` | 桥接分析脚本 |
+| `stage_outputs/tang_figures_v2.csv` | 阶段1产出：人物清单（128 人） |
+| `stage_outputs/relationship_types.csv` | 阶段2产出：关系类型定义（59 行数据） |
 
 ---
 
@@ -37,14 +44,16 @@
 
 ---
 
-## 3. 关系表（relationships.csv）
+## 3. 原始关系表（relationships.csv）
 
-**主键**: 无单一主键；唯一约束为 `(source_id, target_id, rel_type, rel_subtype)`
+每条记录对应 CBDB ASSOC_DATA 或 KIN_DATA 的一条原始记录，**未去重**。
+
+**主键**: 无单一主键；同一 (source_id, target_id, rel_type, rel_subtype) 可能有多条记录。
 
 | 字段 | 类型 | 说明 | 示例 |
 |------|------|------|------|
-| `source_id` | INT | 关系发起方 c_personid | 32540 |
-| `target_id` | INT | 关系目标方 c_personid | 3915 |
+| `source_id` | INT | 关系起点（方向归一化后） | 32540 |
+| `target_id` | INT | 关系终点（方向归一化后） | 3915 |
 | `rel_type` | TEXT | 关系大类 | SOCIAL |
 | `rel_subtype` | TEXT | 关系子类型代号 | SO_FRIEND |
 | `rel_desc_chn` | TEXT | 关系中文描述 | 友 |
@@ -52,81 +61,118 @@
 | `year_start` | INT/NULL | 关系起始年（公元） | 744 |
 | `year_end` | INT/NULL | 关系结束年（公元） | — |
 | `weight` | FLOAT | 关系权重（0.1–1.0） | 0.6 |
-| `evidence_level` | TEXT | primary / inferred | primary |
-| `source_ref` | TEXT | 文献来源 | 唐才子傳 |
-| `cbdb_assoc_code` | INT | CBDB 原始关系代号（可溯源） | 9 |
+| `evidence_level` | TEXT | primary / unsourced | primary |
+| `source_ref` | TEXT | 来源文献名称（TEXT_CODES 全量解析） | 唐才子傳 |
+| `cbdb_assoc_code` | INT | CBDB 原始关系代号 | 9 |
 | `cbdb_role_type` | TEXT | CBDB 角色类型（A/P/M/KIN） | M |
-
-### 关系大类分布
-
-| 大类 | 条数 | 说明 |
-|------|------|------|
-| SOCIAL | 468 | 交游关系（友、同乡、唱和、赠诗等） |
-| KIN | 38 | 亲属关系 |
-| LITERARY | 22 | 文学关联（书序、墓志铭等） |
-| COLLEAGUE | 16 | 同僚/官场关系 |
-| POLITICAL | 11 | 政治/军事关联 |
-| TEACHER_STUDENT | 6 | 师生关系 |
-
-### 证据等级
-
-| 等级 | 条数 | 标准 |
-|------|------|------|
-| primary | 506 | CBDB 记录有 c_source > 0 |
-| inferred | 55 | c_source 为空或 0 |
+| `source_table` | TEXT | 原始来源表 | ASSOC_DATA |
+| `c_source` | INT/空 | CBDB 来源 ID（对应 TEXT_CODES.c_textid） | 40303 |
+| `c_pages` | TEXT | 页码 | 257 |
+| `c_sequence` | INT/空 | 记录序号 | 1 |
+| `c_text_title` | TEXT | ASSOC_DATA 原始文献标题字段 | — |
+| `orig_personid` | INT | 方向归一化前的 c_personid | 32540 |
+| `orig_assoc_id` | INT | 方向归一化前的 c_assoc_id / c_kin_id | 3915 |
 
 ---
 
-## 4. 数据生成步骤
+## 4. 聚合关系表（relationships_layer1.csv / layer2 / combined）
 
-### 4.1 前置条件
+将原始记录按 (source_id, target_id, rel_type, rel_subtype) 聚合。
 
-- CBDB 数据库: `/Users/sousekilyu/Documents/Data/biography_literature_CBDB_china_historical/cbdb202409.db`
-- 阶段1产出: `stage_outputs/tang_figures_v2.csv`（128 人）
-- 阶段2产出: `stage_outputs/relationship_types.csv`（60 条关系子类型）
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| source_id – cbdb_role_type | | 同原始关系表 |
+| `evidence_count` | INT | 聚合的原始记录数 |
+| `evidence_list` | JSON | 原始证据明细数组 |
+| `primary_rel` | 0/1 | 该人物对的主要关系标记 |
+| `is_bridge` | 0/1 | 是否为桥接关系（仅 Layer 2/Combined） |
 
-### 4.2 提取流程
+### evidence_list 结构
+
+```json
+[
+  {
+    "source_table": "ASSOC_DATA",
+    "c_source": 40303,
+    "c_pages": "257",
+    "c_sequence": 1,
+    "c_text_title": "",
+    "orig_personid": 32540,
+    "orig_assoc_id": 3915,
+    "cbdb_assoc_code": 9
+  }
+]
+```
+
+---
+
+## 5. 证据等级
+
+| 等级 | 说明 |
+|------|------|
+| primary | CBDB 直接记录，c_source > 0（有文献来源） |
+| unsourced | CBDB 直接记录，c_source 为空（无文献来源引用） |
+
+本项目未实现推断算法，所有关系均来自 CBDB ASSOC_DATA / KIN_DATA 直接记录，不存在 `inferred` 等级。
+
+---
+
+## 6. 数据生成步骤
+
+### 6.1 前置条件
+
+- CBDB 数据库：通过 `--db` 参数或 `CBDB_PATH` 环境变量配置
+- 阶段1产出：`stage_outputs/tang_figures_v2.csv`（128 人）
+- 阶段2产出：`stage_outputs/relationship_types.csv`（59 行数据）
+
+### 6.2 提取流程
 
 ```
 1. 读取 tang_figures_v2.csv → 128 个 c_personid
-2. 从 BIOG_MAIN 提取人物基本信息（姓名、生卒年、朝代、性别等）
-3. 从 ALTNAME_DATA 提取别名/字/号，合并到 aliases 字段
-4. 从 ASSOC_DATA 提取社会关系
-   - 条件: c_personid 和 c_assoc_id 均在 128 人清单中
-   - 排除: c_assoc_code = -1 或 0
-   - 关联 ASSOC_CODES 获取关系描述和角色类型
-   - 关联 NIAN_HAO 转换年号为公元年
-   - 关联 TEXT_CODES 获取来源文献
-5. 从 KIN_DATA 提取亲属关系
-   - 条件: c_personid 和 c_kin_id 均在 128 人清单中
-   - 关联 KINSHIP_CODES 获取关系描述
-6. 按 (source_id, target_id, rel_type, rel_subtype) 去重
-7. 计算权重、判定证据等级
-8. 输出 persons.csv、relationships.csv
-9. 运行质量检查，输出 quality_report.md
+2. 从 BIOG_MAIN 提取人物基本信息
+3. 从 ALTNAME_DATA 提取别名/字/号
+4. 从 ASSOC_DATA 提取社会关系（不去重，保留完整溯源字段）
+5. 从 KIN_DATA 提取亲属关系（不去重，保留完整溯源字段）
+6. TEXT_CODES 全量加载（无 LIMIT），用于解析 c_source
+7. 输出 persons.csv、relationships.csv（原始记录）
 ```
 
-### 4.3 复现方法
+### 6.3 网络构建流程
+
+```
+1. 读取 persons.csv 和 relationships.csv
+2. 按 (source_id, target_id, rel_type, rel_subtype) 聚合，生成 evidence_list
+3. 添加 primary_rel 标记
+4. 从 CBDB 提取桥接人物关系
+5. 应用严格桥接筛选（2+ 核心人物，新路径，无单核心例外）
+6. 生成 Layer 1、Layer 2、Combined 数据
+7. 连通分量分析
+```
+
+### 6.4 复现方法
 
 ```bash
-# 在项目根目录
-source .venv/bin/activate
+cd /path/to/poet-life-tang
+export CBDB_PATH="/path/to/cbdb202409.db"  # 可选，有默认值
 python scripts/extract_persons_and_relationships.py
+python scripts/build_network_layers.py
+python scripts/quality_check.py
 ```
 
-### 4.4 关键设计决策
+### 6.5 关键设计决策
 
-1. **有向/无向**: 直接使用 CBDB 的 `c_assoc_role_type`：A=发起方，P=接受方，M=无向
-2. **权重**: 按阶段2定义的权重体系（亲属 1.0 → 师生/同僚 0.8 → 交游 0.6 → 文学 0.4 → 政治 0.3）
-3. **去重**: 同一对人物+同一关系类型只保留一条记录
-4. **网络边界**: 只保留两个人物均在 128 人清单中的关系，过滤"向外部人物"的单向关系
-5. **自环过滤**: source_id == target_id 的记录被排除
+1. **有向/无向**: 使用 CBDB 的 `c_assoc_role_type`：A=发起方，P=接受方，M=无向
+2. **权重**: 按阶段2定义的权重体系
+3. **不去重**: 原始记录全部保留，聚合视图通过 evidence_list 保留证据明细
+4. **来源全量解析**: TEXT_CODES 全表加载，不做 LIMIT 截断
+5. **桥接筛选**: 必须连接 2+ 核心人物且提供新路径
+6. **自环过滤**: source_id == target_id 的记录被排除
+7. **路径规范**: 所有脚本从仓库根目录通过相对路径运行
 
 ---
 
-## 5. 已知限制
+## 7. 已知限制
 
-1. **时间缺失**: 540/561 条关系缺少精确时间，原因: CBDB ASSOC_DATA 中多数记录只有年号代号而无对应公元年映射
-2. **7 人孤立**: 黃巢、蕭穎士、李璟、吳道子、尉遲恭、李煜、釋鑒真在 128 人网络内无任何关系——这些人物在 CBDB 中有 ASSOC_DATA，但其关系对象不在 128 人清单中
-3. **SOCIAL 占比过高**: 468/561 (83%)，原因是 CBDB 中"友"(code=9) 和"赠诗文"(code=437) 记录最多
-4. **来源文本代号**: source_ref 字段显示的是 CBDB TEXT_CODES 的 textid，需关联 TEXT_CODES 表获取完整文献名
+1. **3 人孤立**: 釋鑒真、吳道子、黃巢在合并网络中仍无边连接——这些人物在 CBDB 中的关系对象不在核心或桥接人物范围内
+2. **SOCIAL 占比高**: 社交关系占多数，原因是 CBDB 中"友"和"赠诗文"记录最多
+3. **时间缺失**: 多数关系缺少精确时间

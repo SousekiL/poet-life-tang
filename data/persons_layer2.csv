@@ -1,7 +1,6 @@
 c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_female,dynasty_code,dynasty_chn,dynasty_en,role,bridge_tier
 3036,錢鏐,Qian Liu,錢,鏐,852,932,0,11,吳越,WuYue (10 states),bridge,B
 3129,張九皋,Zhang Jiugao,張,九皋,690,755,0,6,唐,Tang,bridge,C
-3316,馮延巳,Feng Yansi,馮,延巳,903,960,0,10,南唐,Southern Tang (10 states),bridge,A
 3480,李吉甫,Li Jifu,李,吉甫,758,814,0,6,唐,Tang,bridge,B
 3789,宋齊丘,Song Qiqiu,宋,齊丘,887,959,0,10,南唐,Southern Tang (10 states),bridge,C
 3927,杜佑,Du You,杜,佑,735,812,0,6,唐,Tang,bridge,B
@@ -29,12 +28,10 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 24645,武三思,Wu Sansi,武,三思,,707,0,6,唐,Tang,bridge,B
 24655,武儒衡,Wu Ruheng,武,儒衡,769,824,0,6,唐,Tang,bridge,C
 24691,馬燧,Ma Sui,馬,燧,726,795,0,6,唐,Tang,bridge,B
-30586,尉遲寶琳,Yuchi Baolin,尉遲,寶琳,,,0,6,唐,Tang,bridge,A
 30846,康駢,Kang Pian,康,駢,,,0,6,唐,Tang,bridge,B
 30868,杜元穎,Du Yuanying,杜,元穎,,,0,6,唐,Tang,bridge,B
 30885,王福畤,Wang Fuzhi,王,福畤,622,,0,6,唐,Tang,bridge,C
 30886,李密,Li Mi,李,密,582,618,0,6,唐,Tang,bridge,B
-30947,尉遲伽,Yuchi Qie,尉遲,伽,,,0,6,唐,Tang,bridge,A
 30976,張薦,Zhang Jian,張,薦,744,804,0,6,唐,Tang,bridge,B
 30977,張又新,Zhang Youxin,張,又新,,,0,6,唐,Tang,bridge,B
 30978,張希復,Zhang Xifu,張,希復,,,0,6,唐,Tang,bridge,C
@@ -73,12 +70,9 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 32136,孫逖,Sun Ti,孫,逖,696,761,0,6,唐,Tang,bridge,B
 32162,李華,Li Hua,李,華,715,766,0,6,唐,Tang,bridge,C
 32165,李峴,Li Xian,李,峴,712,766,0,6,唐,Tang,bridge,C
-32168,蕭恢,Xiao Hui,蕭,恢,,,0,44,南梁,Southern Liang,bridge,A
 32175,王縉,Wang Jin,王,縉,700,781,0,6,唐,Tang,bridge,B
 32189,胡皓,Hu Hao,胡,皓,,,0,6,唐,Tang,bridge,B
 32202,李神通,Li Shentong,李,神通,,630,0,6,唐,Tang,bridge,B
-32206,李孝銳,Li Xiaodui,李,孝銳,,,0,6,唐,Tang,bridge,A
-32208,李齊物,Li Qiwu,李,齊物,,761,0,6,唐,Tang,bridge,A
 32225,白敏中,Bai Minzhong,白,敏中,792,861,0,6,唐,Tang,bridge,B
 32400,崔造,Cui Zao(2),崔,造,737,787,0,6,唐,Tang,bridge,C
 32404,蘇綰,Su Wan,蘇,綰,,,0,6,唐,Tang,bridge,B
@@ -97,7 +91,6 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 32937,獨孤朗,Dugu Lang,獨孤,朗,775,827,0,6,唐,Tang,bridge,C
 32940,獨孤郁,Dugu Yu,獨孤,郁,776,815,0,6,唐,Tang,bridge,B
 33026,崔國輔,Cui Guofu,崔,國輔,,,0,6,唐,Tang,bridge,B
-33094,張義方,Zhang Yifang,張,義方,,,0,6,唐,Tang,bridge,A
 33104,皇甫鏞,Huangfu Yong,皇甫,鏞,760,836,0,6,唐,Tang,bridge,B
 33148,鄭珣瑜,Zheng Xunyu,鄭,珣瑜,738,805,0,6,唐,Tang,bridge,C
 33153,鄭餘慶,Zheng Yuqing,鄭,餘慶,746,820,0,6,唐,Tang,bridge,B
@@ -133,7 +126,6 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 92328,盧綸,Lu Lun,盧,綸,,,0,6,唐,Tang,bridge,B
 92366,盧肇,Lu Zhao,盧,肇,,,0,6,唐,Tang,bridge,B
 92369,釋歸仁,Shi Guiren,釋,歸仁,,,0,6,唐,Tang,bridge,C
-92389,史虛白,Shi Xubai,史,虛白,895,961,0,47,後唐,Later Tang (5 dynasties),bridge,A
 92411,包佶,Bao Ji,包,佶,727,792,0,6,唐,Tang,bridge,B
 92423,陳褘,Chen Yi,陳,褘,600,664,0,6,唐,Tang,bridge,C
 92446,司空曙,Sikong Shu,司空,曙,,,0,6,唐,Tang,bridge,B
@@ -143,20 +135,17 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 92577,任敬臣,Ren Jingchen,任,敬臣,,,0,6,唐,Tang,bridge,C
 92603,劉乂,Liu  Yi,劉,乂,,,0,6,唐,Tang,bridge,B
 92608,劉太真,Liu Taizhen,劉,太真,725,792,0,6,唐,Tang,bridge,C
-92658,劉洞,Liu Dong,劉,洞,,975,0,0,未詳,unknown,bridge,A
 92665,劉眘虛,Liu Shenxu,劉,眘虛,,,0,6,唐,Tang,bridge,B
 92704,胡得生,Hu Desheng,胡,得生,864,943,0,34,後梁,Later Liang (5 dynasties),bridge,B
 92751,許棠,Xu Tang,許,棠,822,,0,6,唐,Tang,bridge,B
 92814,嚴維,Yan Wei,嚴,維,,780,0,6,唐,Tang,bridge,B
 92864,李山甫,Li Shanfu,李,山甫,,,0,6,唐,Tang,bridge,C
-92880,李從謙,Li Congqian,李,從謙,946,995,0,15,宋,Song,bridge,A
 92921,李陽冰,Li Yangbing,李,陽冰,,,0,6,唐,Tang,bridge,C
 92959,李賢,Li Xian,李,賢,654,684,0,6,唐,Tang,bridge,B
 92999,李適,Li Shi,李,適,663,711,0,6,唐,Tang,bridge,B
 93013,李泰,Li Tai,李,泰,618,652,0,6,唐,Tang,bridge,B
 93022,李頎,Li Qi,李,頎,,,0,6,唐,Tang,bridge,B
 93025,李逢吉,Li Fengji,李,逢吉,758,835,0,6,唐,Tang,bridge,B
-93031,李家明,Li Jiaming,李,家明,,,0,10,南唐,Southern Tang (10 states),bridge,A
 93063,李程,Li Cheng,李,程,766,842,0,6,唐,Tang,bridge,B
 93071,李渤,Li Bo,李,渤,773,831,0,6,唐,Tang,bridge,B
 93088,李廓,Li Kuo,李,廓,,,0,6,唐,Tang,bridge,B
@@ -176,7 +165,6 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 93452,張建封,Zhang Jianfeng,張,建封,735,800,0,6,唐,Tang,bridge,B
 93458,張南史,Zhang Nanshi,張,南史,,,0,6,唐,Tang,bridge,B
 93476,張祜,Zhang Hu,張,祜,792,853,0,6,唐,Tang,bridge,B
-93485,張翬,Zhang Hui,張,翬,,,0,6,唐,Tang,bridge,A
 93503,張諲,Zhang Yin,張,諲,,,0,6,唐,Tang,bridge,B
 93520,張道古,Zhang Daogu,張,道古,,908,0,6,唐,Tang,bridge,B
 93522,張諤,Zhang E,張,諤,,,0,6,唐,Tang,bridge,C
@@ -189,13 +177,11 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 93707,林寛,Lin Kuan,林,寛,,,0,6,唐,Tang,bridge,C
 93893,鄭薰,Zheng Xun,鄭,薰,,,0,36,吳(楊),Wu (Yang: 10 states),bridge,B
 93894,鄭顥,Zheng Hao,鄭,顥,,860,0,6,唐,Tang,bridge,C
-93899,釋法進,Shi Fajin,釋,法進,,,0,6,唐,Tang,bridge,A
 93963,孟簡,Meng Jian,孟,簡,,823,0,6,唐,Tang,bridge,B
 94018,趙嘏,Zhao Gu,趙,嘏,806,852,0,36,吳(楊),Wu (Yang: 10 states),bridge,B
 94051,南卓,Nan Zhuo,南,卓,,,0,6,唐,Tang,bridge,B
 94055,柳淡,Liu Dan,柳,淡,,,0,6,唐,Tang,bridge,B
 94073,暢當,Chang Dang,暢,當,,,0,6,唐,Tang,bridge,C
-94075,釋思託,Shi Situo,釋,思託,,,0,6,唐,Tang,bridge,A
 94109,皇甫冉,Huangfu Ran,皇甫,冉,717,770,0,6,唐,Tang,bridge,B
 94112,皇甫松,Huangfu Song,皇甫,松,,,0,6,唐,Tang,bridge,C
 94172,姚鵠,Yao Hu,姚,鵠,,,0,6,唐,Tang,bridge,B
@@ -210,7 +196,6 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 94324,殷堯藩,Yin Yaofan,殷,堯藩,,,0,6,唐,Tang,bridge,B
 94341,高元裕,Gao Yuanyu,高,元裕,777,852,0,6,唐,Tang,bridge,B
 94356,高駢,Gao Pian,高,駢,821,887,0,6,唐,Tang,bridge,C
-94369,高鶴林,Gao Helin,高,鶴林,,,0,6,唐,Tang,bridge,A
 94371,高蟾,Gao Chan,高,蟾,,,0,6,唐,Tang,bridge,C
 94373,郭子儀,Guo Ziyi,郭,子儀,697,781,0,6,唐,Tang,bridge,C
 94427,諸葛覺,Zhuge Jue,諸葛,覺,,,0,6,唐,Tang,bridge,B
@@ -226,7 +211,6 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 94691,蔣防,Jiang Fang,蔣,防,,,0,6,唐,Tang,bridge,B
 94714,韓翃,Han Hong,韓,翃,,,0,6,唐,Tang,bridge,B
 94722,韓湘,Han Xiang,韓,湘,795,,0,6,唐,Tang,bridge,B
-94724,韓熙載,Han Xizai,韓,熙載,902,970,0,47,後唐,Later Tang (5 dynasties),bridge,A
 94740,喩鳧,Yu Fu,喩,鳧,,,0,6,唐,Tang,bridge,B
 94771,儲光羲,Chu Guangxi,儲,光羲,706,762,0,6,唐,Tang,bridge,B
 94860,鮑溶,Bao Rong,鮑,溶,,,0,6,唐,Tang,bridge,B
@@ -243,21 +227,16 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 95066,薛逢,Xue Feng,薛,逢,,,0,6,唐,Tang,bridge,B
 118199,李錡,Li Qi,李,錡,741,807,0,6,唐,Tang,bridge,C
 136174,李抱真,Li Baozhen,李,抱真,733,794,0,6,唐,Tang,bridge,B
-139162,蘇娬,Su Wu,蘇,娬,589,613,1,5,隋,Sui,bridge,A
 139803,李氏（臨川公主）,Li Shi(Lin Chuan Princess),李,氏（臨川公主）,624,682,1,6,唐,Tang,bridge,B
 140204,李仙蕙（永泰公主）,Li Xianhui(Yongtai Princess),李,仙蕙（永泰公主）,685,701,1,77,周,Zhou (Wu Zetian),bridge,B
 145215,裴夷直,Pei Yizhi,裴,夷直,787,859,0,6,唐,Tang,bridge,B
-145566,蕭存,Xiao Cun,蕭,存,739,800,0,6,唐,Tang,bridge,A
 145814,嚴礪,Yan Li,嚴,礪,743,809,0,6,唐,Tang,bridge,C
 146237,戴叔倫,Dai Shulun,戴,叔倫,732,789,0,6,唐,Tang,bridge,B
-147517,尉遲本真,Yuchi Benzhen,尉遲,本真,,,0,0,未詳,unknown,bridge,A
-147518,尉遲孟都,Yuchi Mengdou,尉遲,孟都,,,0,0,未詳,unknown,bridge,A
 156023,韋皋,Wei Gao,韋,皋,,,0,6,唐,Tang,bridge,B
 169209,李景讓,Li Jingrang,李,景讓,788,860,0,6,唐,Tang,bridge,B
 171077,裴贄,Pei Zhi,裴,贄,,905,0,0,未詳,unknown,bridge,B
 171253,裴垍,Pei Ji,裴,垍,,811,0,6,唐,Tang,bridge,B
 172582,楊朏,Yang Ku,楊,朏,,806,0,6,唐,Tang,bridge,C
-173145,長孫鑄,Zhangsun Zhu,長孫,鑄,,796,0,6,唐,Tang,bridge,A
 173383,李迥秀,Li Jiongxiu,李,迥秀,,682,0,6,唐,Tang,bridge,B
 173516,李榮,Li Rong,李,榮,,792,0,6,唐,Tang,bridge,C
 173741,李愿,Li Yuan,李,愿,,825,0,6,唐,Tang,bridge,B
@@ -281,7 +260,6 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 179256,盧僎,Lu Zhuan,盧,僎,,724,0,6,唐,Tang,bridge,C
 179585,陸長源,Lu Changyuan,陸,長源,,772,0,6,唐,Tang,bridge,B
 179808,趙彥昭,Zhao Yanzhao,趙,彥昭,,714,0,6,唐,Tang,bridge,B
-181936,姚發,Yao Fa,姚,發,,751,0,6,唐,Tang,bridge,A
 183943,鄭畋,Zheng Tian,鄭,畋,824,883,0,6,唐,Tang,bridge,C
 183952,鄭愔,Zheng Yin,鄭,愔,,715,0,6,唐,Tang,bridge,B
 184472,舒元輿,Shu Yuanyu,舒,元輿,,835,0,6,唐,Tang,bridge,C
@@ -298,17 +276,12 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 188190,李餘,Li Yu,李,餘,,922,0,0,未詳,unknown,bridge,B
 188233,李元嬰,Li Yuanying,李,元嬰,,652,0,6,唐,Tang,bridge,C
 188499,李遠,Li Yuan,李,遠,,955,0,0,未詳,unknown,bridge,B
-188617,李承業,Li Chengye,李,承業,,739,0,6,唐,Tang,bridge,A
-188618,李承嘉,Li Chengjia,李,承嘉,,739,0,6,唐,Tang,bridge,A
-188619,李承胤,Li Chengyin,李,承胤,,739,0,6,唐,Tang,bridge,A
-188620,李承祖,Li Chengzu,李,承祖,,739,0,6,唐,Tang,bridge,A
 188925,李重俊,Li Zhongjun,李,重俊,,742,0,6,唐,Tang,bridge,C
 189016,李範（岐王）,Li Fan(Qi Wang),李,範（岐王）,,748,0,6,唐,Tang,bridge,B
 189491,胡証,Hu Zheng,胡,証,,743,0,6,唐,Tang,bridge,B
 189569,許孟容,Xu Mengrong,許,孟容,742,818,0,6,唐,Tang,bridge,B
 189633,范傳正,Fan Chuanzheng,范,傳正,,815,0,6,唐,Tang,bridge,C
 190786,崔昭,Cui Zhao,崔,昭,,791,0,6,唐,Tang,bridge,B
-194122,蕭旻,Xiao Min,蕭,旻,,724,0,6,唐,Tang,bridge,A
 194588,嚴休復,Yan Xiufu,嚴,休復,,840,0,6,唐,Tang,bridge,B
 195688,嚴武,Yan Wu,嚴,武,725,765,0,6,唐,Tang,bridge,B
 196063,王守澄,Wang Shoucheng,王,守澄,,835,0,6,唐,Tang,bridge,C
@@ -338,7 +311,6 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 444850,李氏（太平公主）,Li Shi(Tai Ping princess),李,氏（太平公主）,,,1,,未知,unknown,bridge,B
 445068,龐嚴,Pang Yan,龐,嚴,,,0,6,唐,Tang,bridge,B
 445110,高耽,Gao Dan,高,耽,,,0,6,唐,Tang,bridge,C
-445183,慶奴,Qingnu,,慶奴,,,0,6,唐,Tang,bridge,A
 445192,唐衢,Tang Qu,唐,衢,,,0,6,唐,Tang,bridge,B
 445220,釋廣通,Shi Guangtong,釋,廣通,,,0,6,唐,Tang,bridge,C
 445237,釋文暢,Shi Wenchang,釋,文暢,,,0,6,唐,Tang,bridge,B
@@ -354,24 +326,20 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 445579,王迥,Wang Jiong,王,迥,,,0,6,唐,Tang,bridge,C
 445585,王太后(李湛母),Wang Taihou(Li Zhan's Mother),王,太后(李湛母),,,1,6,唐,Tang,bridge,B
 445603,王茂元,Wang Maoyuan,王,茂元,,,0,6,唐,Tang,bridge,C
-445628,王感化,Wang Ganhua,王,感化,,,0,6,唐,Tang,bridge,A
 445660,王卿,Wang Qing,王,卿,,,0,6,唐,Tang,bridge,C
 445676,王知白,Wang Zhibai,王,知白,,,0,6,唐,Tang,bridge,C
 445700,釋靈一,Shi Lingyi,釋,靈一,,,0,6,唐,Tang,bridge,B
 445729,元德秀,Yuan Dexiu,元,德秀,,,0,6,唐,Tang,bridge,B
 445755,元晟,Yuan Sheng,元,晟,,,0,6,唐,Tang,bridge,C
-445763,釋元開,Shi Yuankai,釋,元開,,,0,6,唐,Tang,bridge,A
 445771,釋霄韻,Shi Xiaoyun,釋,霄韻,,,0,6,唐,Tang,bridge,C
 445791,于逖,Yu Ti,于,逖,,,0,6,唐,Tang,bridge,C
 445798,于丹,Yu Dan,于,丹,,,0,6,唐,Tang,bridge,C
 445800,于人文,Yu Renwen,于,人文,,,0,6,唐,Tang,bridge,B
-445857,賈邕,Jia Yong,賈,邕,,,0,6,唐,Tang,bridge,A
 445874,賈曾,Jia Ceng,賈,曾,,,0,6,唐,Tang,bridge,C
 445886,張彥,Zhang Yan,張,彥,,,0,6,唐,Tang,bridge,C
 445945,張仁亶,Zhang Rendan,張,仁亶,,,0,6,唐,Tang,bridge,C
 445957,張參,Zhang Can,張,參,,,0,6,唐,Tang,bridge,C
 445959,張獻心,Zhang Xianxin,張,獻心,,,0,6,唐,Tang,bridge,C
-446030,張志尹,Zhang Zhiyin,張,志尹,,,0,6,唐,Tang,bridge,A
 446062,張超,Zhang Chao,張,超,,,0,6,唐,Tang,bridge,C
 446137,裴袞,Pei Gun,裴,袞,,,0,6,唐,Tang,bridge,C
 446145,裴霸,Pei Ba,裴,霸,,,0,6,唐,Tang,bridge,C
@@ -384,7 +352,6 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 446299,孫路,Sun Lu,孫,路,,,0,6,唐,Tang,bridge,B
 446307,孫簡,Sun Jian,孫,簡,,,0,6,唐,Tang,bridge,C
 446338,孟雲卿,Meng Yunqing,孟,雲卿,,,0,6,唐,Tang,bridge,B
-446392,尹徵,Yin Zheng,尹,徵,,,0,6,唐,Tang,bridge,A
 446436,喬知之,Qiao Zhizhi,喬,知之,,,0,6,唐,Tang,bridge,B
 446450,毛于,Mao Yu,毛,于,,,0,6,唐,Tang,bridge,B
 446488,盧延讓,Lu Yanrang,盧,延讓,,,0,6,唐,Tang,bridge,B
@@ -412,15 +379,11 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 446880,儲嗣宗,Chu Sizong,儲,嗣宗,,,0,6,唐,Tang,bridge,C
 446959,釋自省,Shi Zixing,釋,自省,,,0,6,唐,Tang,bridge,C
 446976,皇甫會,Huangfu Hui,皇甫,會,,,0,6,唐,Tang,bridge,B
-446982,息夫牧,Xifu Mu,息夫,牧,,,0,6,唐,Tang,bridge,A
 447047,吳筠,Wu Jun,吳,筠,,,0,6,唐,Tang,bridge,B
 447110,殷文圭,Yin Wengui,殷,文圭,,,0,6,唐,Tang,bridge,B
-447124,殷少野,Yin Shaoye,殷,少野,,,0,6,唐,Tang,bridge,A
 447143,鄔載,Wu Zai,鄔,載,,,0,6,唐,Tang,bridge,B
-447149,鄒象先,Zou Xiangxian,鄒,象先,,,0,6,唐,Tang,bridge,A
 447201,徐夤,Xu Yin,徐,夤,,,0,6,唐,Tang,bridge,B
 447213,徐凝,Xu Ning,徐,凝,,,0,6,唐,Tang,bridge,B
-447260,房白,Fang Bai,房,白,,,0,6,唐,Tang,bridge,A
 447332,竇希玠,Dou Xijie,竇,希玠,,,0,6,唐,Tang,bridge,C
 447346,釋宗密,Shi Zongmi,釋,宗密,780,841,0,6,唐,Tang,bridge,B
 447465,梁鍠,Liang Huang,梁,鍠,,,0,6,唐,Tang,bridge,C
@@ -431,14 +394,12 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 447532,釋造微,Shi Zaowei,釋,造微,,,0,6,唐,Tang,bridge,B
 447535,釋清徹,Shi Qingche,釋,清徹,,,0,6,唐,Tang,bridge,B
 447541,清遠, Qingyuan,,清遠,,,0,6,唐,Tang,bridge,B
-447581,湯悅,Tang Yue,湯,悅,,,0,6,唐,Tang,bridge,A
 447594,渾鎬,Hun Hao,渾,鎬,,,0,6,唐,Tang,bridge,C
 447631,釋道俊,Shi Daojun,釋,道俊,,,0,6,唐,Tang,bridge,C
 447701,李方玄,Li Fangxuan,李,方玄,,,0,6,唐,Tang,bridge,B
 447719,李讓夷,Li Rangyi,李,讓夷,,,0,6,唐,Tang,bridge,B
 447721,李褎,Li You,李,褎,,,0,6,唐,Tang,bridge,B
 447722,李玄,Li Xuan,李,玄,,,0,6,唐,Tang,bridge,C
-447728,李新,Li Xin,李,新,,,0,6,唐,Tang,bridge,A
 447734,李詡,Li Xu,李,詡,,,0,6,唐,Tang,bridge,C
 447735,李誦,Li Song,李,誦,,,0,6,唐,Tang,bridge,B
 447753,李元素,Li Yuansu,李,元素,,,0,6,唐,Tang,bridge,C
@@ -446,21 +407,15 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 447803,李億,Li Yi,李,億,,,0,6,唐,Tang,bridge,B
 447853,李勉,Li Mian,李,勉,,,0,6,唐,Tang,bridge,B
 447857,李幼卿,Li Youqing,李,幼卿,,,0,6,唐,Tang,bridge,B
-447867,李仲宣,Li Zhongxuan,李,仲宣,,,0,6,唐,Tang,bridge,A
 447879,李皋,Li Gao,李,皋,,,0,6,唐,Tang,bridge,B
 447906,李紓,Li Shu,李,紓,,,0,6,唐,Tang,bridge,B
-447918,李從益,Li Congyi,李,從益,,,0,6,唐,Tang,bridge,A
 447952,李定言,Li Dingyan,李,定言,,,0,6,唐,Tang,bridge,C
 447993,李湊,Li Cou,李,湊,,,0,6,唐,Tang,bridge,C
 448009,李溟,Li Ming,李,溟,,,0,6,唐,Tang,bridge,B
 448033,李道樞,Li Daoshu,李,道樞,,,0,6,唐,Tang,bridge,B
 448069,李翥,Li Zhu,李,翥,,,0,6,唐,Tang,bridge,B
-448124,李夷鄴,Li Yiye,李,夷鄴,,,0,6,唐,Tang,bridge,A
 448162,李晟,Li Sheng,李,晟,,,0,6,唐,Tang,bridge,C
 448187,李景儉,Li Jingjian,李,景儉,,,0,6,唐,Tang,bridge,B
-448189,李景逵,Li Jingkui,李,景逵,,,0,6,唐,Tang,bridge,A
-448191,李景逷,Li Jingti,李,景逷,,,0,6,唐,Tang,bridge,A
-448192,李景遂,Li Jingsui,李,景遂,,,0,6,唐,Tang,bridge,A
 448226,李隆業,Li Longye,李,隆業,,,0,6,唐,Tang,bridge,C
 448280,李光顏,Li Guangyan,李,光顏,,,0,6,唐,Tang,bridge,B
 448287,李炎,Li Yan,李,炎,,,0,6,唐,Tang,bridge,B
@@ -473,7 +428,6 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 448507,姚紹之,Yao Shaozhi,姚,紹之,,,0,6,唐,Tang,bridge,C
 448568,范希朝,Fan Xichao,范,希朝,,,0,6,唐,Tang,bridge,C
 448620,蕭澣,Xiao Huan,蕭,澣,,,0,6,唐,Tang,bridge,C
-448636,藤原刷雄,Tengyuan Shuaxiong,藤原,刷雄,,,0,6,唐,Tang,bridge,A
 448663,蘇端,Su Duan,蘇,端,,,0,6,唐,Tang,bridge,C
 448714,韓雲卿,Han Yunqing,韓,雲卿,,,0,6,唐,Tang,bridge,C
 448799,薛邕,Xue Yong,薛,邕,,,0,6,唐,Tang,bridge,B
@@ -497,10 +451,8 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 449112,楊凝,Yang Ning,楊,凝,,,0,6,唐,Tang,bridge,C
 449121,楊戴,Yang Dai,楊,戴,,,0,6,唐,Tang,bridge,C
 449143,楊轍,Yang Zhe,楊,轍,,,0,6,唐,Tang,bridge,B
-449246,柳幷,Liu Bing,柳,幷,,,0,6,唐,Tang,bridge,A
 449290,趙仙舟,Zhao Xianzhou,趙,仙舟,,,0,6,唐,Tang,bridge,C
 449310,趙鴻,Zhao Hong,趙,鴻,,,0,6,唐,Tang,bridge,C
-449314,趙載,Zhao Zai,趙,載,,,0,6,唐,Tang,bridge,A
 449434,曹確,Cao Que,曹,確,,,0,6,唐,Tang,bridge,B
 449450,費冠卿,Fei Guanqing,費,冠卿,,,0,6,唐,Tang,bridge,B
 449535,釋圓昉,Shi Yuanfang,釋,圓昉,,,0,6,唐,Tang,bridge,C
@@ -513,21 +465,16 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 449610,喻坦之,Yu Tanzhi,喻,坦之,,,0,6,唐,Tang,bridge,B
 449624,厲玄,Li Xuan,厲,玄,,,0,6,唐,Tang,bridge,B
 449660,馬擇,Ma Ze,馬,擇,,,0,6,唐,Tang,bridge,C
-449744,劉舟,Liu Zhou,劉,舟,,,0,6,唐,Tang,bridge,A
 449754,劉憲,Liu Xian,劉,憲,,,0,6,唐,Tang,bridge,C
 449759,劉灣,Liu Wan,劉,灣,,,0,6,唐,Tang,bridge,C
-449774,劉太冲,Liu Taichong,劉,太冲,,,0,6,唐,Tang,bridge,A
 449791,劉蕡,Liu Fen,劉,蕡,,,0,6,唐,Tang,bridge,C
 449792,劉棲楚,Liu Qichu,劉,棲楚,,,0,6,唐,Tang,bridge,C
 449848,劉公濟,Liu Gongji,劉,公濟,,,0,6,唐,Tang,bridge,B
 449867,丘爲,Qiu Wei,丘,爲,,,0,6,唐,Tang,bridge,C
-449892,陸淹,Lu Yan,陸,淹,,,0,6,唐,Tang,bridge,A
 449894,陸澧,Lu Li,陸,澧,,,0,6,唐,Tang,bridge,B
-449907,陸棣,Lu Di,陸,棣,,,0,6,唐,Tang,bridge,A
 449911,陸暢,Lu Chang,陸,暢,,,0,6,唐,Tang,bridge,B
 449924,陳商,Chen Shang,陳,商,,,0,6,唐,Tang,bridge,B
 449943,陳羽,Chen Yu,陳,羽,,,0,6,唐,Tang,bridge,C
-450002,陳貺,Chen Kuang,陳,貺,,,0,6,唐,Tang,bridge,A
 450008,陳兼,Chen Jian,陳,兼,,,0,6,唐,Tang,bridge,B
 450027,周元範,Zhou Yuanfan,周,元範,,,0,6,唐,Tang,bridge,B
 450035,周繇,Zhou Yao,周,繇,,,0,6,唐,Tang,bridge,B
@@ -547,14 +494,11 @@ c_personid,name_chn,name_rm,surname_chn,given_name_chn,birthyear,deathyear,is_fe
 450449,釋少微,Shi Shaowei,釋,少微,,,0,6,唐,Tang,bridge,B
 450457,釋尚顏,Shi Shangyan,釋,尚顏,,,0,6,唐,Tang,bridge,B
 450491,李氏(李純女),Li Shi(Li Chun's Daughter),李,氏(李純女),,,1,6,唐,Tang,bridge,B
-450533,盧冀,Lu Ji,盧,冀,,,0,6,唐,Tang,bridge,A
 450597,李珏,Li Jue,李,珏,,,0,6,唐,Tang,bridge,B
 450631,衛伯玉,Wei Boyu,衛,伯玉,,,0,6,唐,Tang,bridge,B
 450650,令狐緒,Linghu Xu,令狐,緒,,,0,6,唐,Tang,bridge,C
-450651,鄭愕,Zheng E,鄭,愕,,,0,6,唐,Tang,bridge,A
 450663,釋悟空,Shi Wukong,釋,悟空,,,0,6,唐,Tang,bridge,C
 450665,裴衡,Pei Heng,裴,衡,,,0,6,唐,Tang,bridge,C
 450670,裴儔,Pei Chou,裴,儔,,,0,6,唐,Tang,bridge,B
 450704,趙能卿,Zhao Nengqing,趙,能卿,,,0,6,唐,Tang,bridge,C
-450715,周娥皇,Zhou Ehuang,周,娥皇,,,0,6,唐,Tang,bridge,A
 512425,張岧,Zhang Tiao,張,岧,,,0,6,唐,Tang,bridge,C

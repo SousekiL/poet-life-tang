@@ -12,14 +12,6 @@ body { background: #0d1117; color: #e6edf3; font-family: 'PingFang SC','Microsof
 
 #sidebar { width: 340px; min-width: 340px; background: #161b22; border-right: 1px solid #30363d; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
 #sidebar h1 { font-size: 18px; font-weight: 700; color: #e6edf3; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
-#label-toggle-control { display: inline-flex; align-items: center; gap: 8px; align-self: flex-start; color: #8b949e; font-size: 12px; cursor: pointer; user-select: none; }
-#label-toggle { position: absolute; opacity: 0; }
-.toggle-track { position: relative; width: 30px; height: 16px; border-radius: 999px; background: #30363d; transition: background 0.2s ease-out; }
-.toggle-track::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #8b949e; transition: transform 0.2s ease-out, background 0.2s ease-out; }
-#label-toggle:checked + .toggle-track { background: #1f6feb; }
-#label-toggle:checked + .toggle-track::after { background: #e6edf3; transform: translateX(14px); }
-#label-toggle:focus-visible + .toggle-track { outline: 2px solid #58a6ff; outline-offset: 2px; }
-.node-label { pointer-events: none; fill: #e6edf3; font-family: 'Palatino Linotype', Palatino, 'Songti SC', STSong, serif; font-size: 12px; font-weight: 600; paint-order: stroke; stroke: #0d1117; stroke-width: 3px; stroke-linejoin: round; }
 
 #search-wrap { position: relative; }
 #search-box { width: 100%; padding: 10px 14px 10px 32px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 14px; outline: none; }
@@ -92,11 +84,6 @@ svg { width: 100%; height: 100%; }
 <div id="app">
   <div id="sidebar">
     <h1>唐代人物关系网络</h1>
-    <label id="label-toggle-control" title="显示或隐藏重要人物姓名">
-      <input type="checkbox" id="label-toggle" role="switch" aria-label="显示重要人物姓名标签" checked>
-      <span class="toggle-track" aria-hidden="true"></span>
-      <span>重要人物姓名</span>
-    </label>
     <div id="search-wrap">
       <span id="search-icon">🔍</span>
       <input type="text" id="search-box" placeholder="输入姓名或拼音，选择人物作为主人公..." autocomplete="off">
@@ -136,7 +123,7 @@ svg { width: 100%; height: 100%; }
     <div id="stats">显示: <span id="stat-visible">0</span> 人 / <span id="stat-edges">0</span> 条关系<br>总计: <span id="stat-total">0</span> 人</div>
   </div>
   <div id="canvas-wrap">
-    <svg id="graph" role="img" aria-label="唐代重要人物社会关系网络；节点表示人物，连线表示人物关系"></svg>
+    <svg id="graph"></svg>
     <div id="tooltip"><div class="name"></div><div class="detail"></div></div>
     <div id="edge-tooltip"><div class="rel-title"></div><div class="rel-list"></div></div>
     <div id="legend">
@@ -165,19 +152,16 @@ svg { width: 100%; height: 100%; }
 const ERA_COLORS = {'初唐':'#58a6ff','盛唐':'#f0883e','中唐':'#a371f7','晚唐':'#f778ba','未詳':'#484f58'};
 const REL_COLORS = {'KIN':'#fbbf24','TEACHER_STUDENT':'#a78bfa','COLLEAGUE':'#22d3ee','LITERARY':'#4ade80','POLITICAL':'#fb923c','SOCIAL':'#94a3b8'};
 const REL_LABELS = {'KIN':'亲属','TEACHER_STUDENT':'师生','COLLEAGUE':'同僚','LITERARY':'文学','POLITICAL':'政治','SOCIAL':'社交'};
+const FAMOUS_POETS = ['白居易','杜甫','李白','韓愈','王維','柳宗元','劉禹錫','元稹','李商隱','杜牧','李隆基（唐玄宗）','賈島','張說','高適','孟郊'];
 const GENDER_COLORS = {male:'#58a6ff',female:'#f85149'};
 const DEGREE_BUCKETS = ['0 (孤立)','1-2','3-5','6-10','11-20','20+'];
 const DEGREE_COLORS = {'0 (孤立)':'#484f58','1-2':'#8b949e','3-5':'#58a6ff','6-10':'#a371f7','11-20':'#f0883e','20+':'#f85149'};
 const ROLE_COLORS = {core:'#58a6ff',bridge:'#a371f7'};
 const ROLE_LABELS = {core:'核心人物',bridge:'桥接人物'};
-const FEATURED_NAME_PARTS = ['李白','杜甫','王維','白居易','韓愈','柳宗元','劉禹錫','李商隱','杜牧','孟浩然','王昌齡','岑參','高適','元稹','李賀','王勃','陳子昂','賀知章','張九齡','王之渙','溫庭筠','李世民','武曌','武則天','李隆基','狄仁傑','魏徵'];
-const MAX_CENTRAL_LABELS = 12;
 
 const DYNASTY_ERA_MAP = {'隋':'初唐','南梁':'初唐','周':'盛唐','南唐':'晚唐','吳越':'晚唐','後唐':'晚唐','前蜀':'晚唐','後梁':'晚唐','吳(楊)':'晚唐','宋':'晚唐'};
 
 function degreeBucket(d) { if(d===0)return'0 (孤立)';if(d<=2)return'1-2';if(d<=5)return'3-5';if(d<=10)return'6-10';if(d<=20)return'11-20';return'20+'; }
-function endpointId(endpoint) { return typeof endpoint === 'object' ? endpoint.id : endpoint; }
-function edgeIds(edge) { return [endpointId(edge.source), endpointId(edge.target)]; }
 
 function getEra(n) {
   let y = n.birthyear;
@@ -191,8 +175,7 @@ let allNodes=[], allEdges=[], nodeMap={};
 let filters = {era:new Set(), rel_type:new Set(), degree:new Set(), gender:new Set(), role:new Set()};
 let selectedNodes = new Set();
 let protagonistId = null;
-let labelsVisible = true;
-let simulation, svg, background, g, linkG, nodeG, labelG, zoom;
+let simulation, svg, g, linkG, nodeG, labelG, zoom;
 
 const FILTER_DEFS = {
   era: { colors: ERA_COLORS, labelKey: null },
@@ -209,7 +192,7 @@ allEdges = data.edges;
 // Count degrees from primary edges
 const primaryEdges = allEdges.filter(e => e.primary === 1);
 const degreeCount = {};
-primaryEdges.forEach(e => { const [sid,tid]=edgeIds(e); degreeCount[sid] = (degreeCount[sid]||0)+1; degreeCount[tid] = (degreeCount[tid]||0)+1; });
+primaryEdges.forEach(e => { degreeCount[e.source] = (degreeCount[e.source]||0)+1; degreeCount[e.target] = (degreeCount[e.target]||0)+1; });
 allNodes.forEach(n => { n.degree = degreeCount[n.id] || 0; n.degreeBucket = degreeBucket(n.degree); });
 allNodes.forEach(n => nodeMap[n.id] = n);
 
@@ -236,7 +219,7 @@ function initSearch() {
   const results = document.getElementById('search-results');
   box.addEventListener('input', () => {
     const q = box.value.trim().toLowerCase();
-    if(!q) { results.style.display='none'; resetNetworkView(); return; }
+    if(!q) { results.style.display='none'; selectedNodes.clear(); protagonistId=null; applyFilters(); return; }
     const matches = allNodes.filter(n => n.name.includes(q)||(n.name_rm||'').toLowerCase().includes(q)).slice(0,20);
     if(!matches.length) { results.style.display='none'; return; }
     results.innerHTML = matches.map(n => `<div class="item" data-id="${n.id}"><span class="name">${n.name}</span><span class="meta">${n.name_rm||''} · ${n.era} · 度${n.degree}</span></div>`).join('');
@@ -246,7 +229,7 @@ function initSearch() {
         const id = +el.dataset.id;
         protagonistId = id;
         selectedNodes.clear(); selectedNodes.add(id);
-        primaryEdges.forEach(e => { const [sid,tid]=edgeIds(e); if(sid===id)selectedNodes.add(tid); if(tid===id)selectedNodes.add(sid); });
+        primaryEdges.forEach(e => { const sid=typeof e.source==='object'?e.source.id:e.source; const tid=typeof e.target==='object'?e.target.id:e.target; if(sid===id)selectedNodes.add(tid); if(tid===id)selectedNodes.add(sid); });
         box.value = nodeMap[id].name;
         results.style.display='none';
         applyFilters(); zoomToNode(id);
@@ -309,29 +292,10 @@ function getVisibleNodes() {
 }
 function getVisibleEdges(visibleIds) {
   return primaryEdges.filter(e => {
-    const [sid,tid] = edgeIds(e);
-    if(!visibleIds.has(sid)||!visibleIds.has(tid)) return false;
+    if(!visibleIds.has(e.source)||!visibleIds.has(e.target)) return false;
     if(filters.rel_type.size&&!filters.rel_type.has(e.rel_type)) return false;
     return true;
   });
-}
-
-function personLabel(node) { return node.name.replace(/（.*?）/g,''); }
-function getLabeledNodes(visibleNodes) {
-  if(!labelsVisible) return [];
-  const labelIds = new Set();
-  visibleNodes.forEach(n => { if(FEATURED_NAME_PARTS.some(name => n.name.includes(name))) labelIds.add(n.id); });
-  let candidates = visibleNodes.filter(n => n.role === 'core');
-  if(!candidates.length) candidates = visibleNodes;
-  candidates.slice().sort((a,b) => b.degree-a.degree || a.id-b.id).slice(0,MAX_CENTRAL_LABELS).forEach(n => labelIds.add(n.id));
-  if(protagonistId && visibleNodes.some(n => n.id === protagonistId)) labelIds.add(protagonistId);
-  return visibleNodes.filter(n => labelIds.has(n.id));
-}
-
-function renderLabels(visibleNodes) {
-  const labels = labelG.selectAll('text.node-label').data(getLabeledNodes(visibleNodes), d=>d.id);
-  labels.exit().remove();
-  labels.enter().append('text').attr('class','node-label').attr('aria-hidden','true').text(personLabel).merge(labels);
 }
 
 function applyFilters() {
@@ -353,21 +317,26 @@ function applyFilters() {
     .attr('stroke', d => { if(protagonistId&&d.id===protagonistId) return '#ffd700'; return d.role==='core'?'#21262d':'transparent'; })
     .attr('stroke-width', d => { if(protagonistId&&d.id===protagonistId) return 3; return d.role==='core'?1:0; });
 
-  renderLabels(visibleNodes);
-
-  const edges = linkG.selectAll('line').data(visibleEdges, d=>{ const [sid,tid]=edgeIds(d); return `${sid}-${tid}-${d.rel_type}`; });
+  const edges = linkG.selectAll('line').data(visibleEdges, d=>`${d.source}-${d.target}-${d.rel_type}`);
   edges.exit().transition().duration(300).attr('opacity',0).remove();
   const edgesEnter = edges.enter().append('line').attr('opacity',0).on('mouseover',showEdgeTooltip).on('mouseout',hideEdgeTooltip);
   edges.merge(edgesEnter).transition().duration(300)
     .attr('stroke', d=>REL_COLORS[d.rel_type]||'#30363d')
     .attr('stroke-width', d => {
-      if(selectedNodes.size) { const [sid,tid]=edgeIds(d); if(selectedNodes.has(sid)&&selectedNodes.has(tid)) return 2; }
+      if(selectedNodes.size) { if(selectedNodes.has(d.source)&&selectedNodes.has(d.target)) return 2; }
       return 0.8;
     })
     .attr('opacity', d => {
-      if(selectedNodes.size) { const [sid,tid]=edgeIds(d); if(selectedNodes.has(sid)&&selectedNodes.has(tid)) return 0.8; return 0.05; }
+      if(selectedNodes.size) { if(selectedNodes.has(d.source)&&selectedNodes.has(d.target)) return 0.8; return 0.05; }
       return 0.45;
     });
+
+  // Update labels
+  const labelNodes = visibleNodes.filter(n => FAMOUS_POETS.includes(n.name));
+  const labels = labelG.selectAll('text').data(labelNodes, d=>d.id);
+  labels.exit().remove();
+  labels.enter().append('text').attr('text-anchor','middle').attr('fill','#e6edf3').attr('font-size','11px').attr('font-weight','600').attr('pointer-events','none')
+    .merge(labels).attr('dy', d => -nodeRadius(d)-4).text(d=>d.name);
 
   simulation.nodes(visibleNodes);
   simulation.force('link').links(visibleEdges);
@@ -382,37 +351,50 @@ function initGraph() {
   const wrap = document.getElementById('canvas-wrap'); const w=wrap.clientWidth, h=wrap.clientHeight;
   svg = d3.select('#graph').attr('width',w).attr('height',h);
   zoom = d3.zoom().scaleExtent([0.1,8]).on('zoom', e=>g.attr('transform',e.transform));
-  svg.call(zoom);
-  background = svg.append('rect').attr('class','graph-background').attr('width',w).attr('height',h).attr('fill','transparent').on('click',resetNetworkView);
-  g = svg.append('g'); linkG = g.append('g'); nodeG = g.append('g'); labelG = g.append('g');
+  svg.call(zoom); g = svg.append('g'); linkG = g.append('g'); nodeG = g.append('g'); labelG = g.append('g');
 
   const visibleNodes = getVisibleNodes(); const visibleIds = new Set(visibleNodes.map(n=>n.id)); const visibleEdges = getVisibleEdges(visibleIds);
   linkG.selectAll('line').data(visibleEdges).join('line').attr('stroke',d=>REL_COLORS[d.rel_type]||'#30363d').attr('stroke-width',0.8).attr('opacity',0.45).on('mouseover',showEdgeTooltip).on('mouseout',hideEdgeTooltip);
   nodeG.selectAll('circle').data(visibleNodes).join('circle').attr('r',d=>nodeRadius(d)).attr('fill',d=>GENDER_COLORS[d.gender]||'#484f58').attr('stroke',d=>d.role==='core'?'#21262d':'transparent').attr('stroke-width',d=>d.role==='core'?1:0).attr('opacity',d=>d.role==='core'?0.95:0.5).on('mouseover',showTooltip).on('mouseout',hideTooltip).on('click',highlightConnected).call(d3.drag().on('start',dragStarted).on('drag',dragged).on('end',dragEnded));
-  renderLabels(visibleNodes);
+
+  // Add labels for famous poets
+  const labelNodes = visibleNodes.filter(n => FAMOUS_POETS.includes(n.name));
+  labelG.selectAll('text').data(labelNodes, d=>d.id).join('text')
+    .attr('text-anchor','middle').attr('dy', d => -nodeRadius(d)-4)
+    .attr('fill','#e6edf3').attr('font-size','11px').attr('font-weight','600')
+    .attr('pointer-events','none').text(d=>d.name);
 
   simulation = d3.forceSimulation(visibleNodes).force('link',d3.forceLink(visibleEdges).id(d=>d.id).distance(50).strength(0.5)).force('charge',d3.forceManyBody().strength(-80)).force('center',d3.forceCenter(w/2,h/2)).force('collision',d3.forceCollide().radius(d=>nodeRadius(d)+2)).force('radial',d3.forceRadial(0,w/2,h/2).strength(0.05)).on('tick',tick);
 
   document.getElementById('zoom-in').onclick = ()=>svg.transition().call(zoom.scaleBy,1.5);
   document.getElementById('zoom-out').onclick = ()=>svg.transition().call(zoom.scaleBy,0.67);
-  document.getElementById('zoom-reset').onclick = resetNetworkView;
-  document.getElementById('label-toggle').addEventListener('change', event=>{ labelsVisible=event.target.checked; renderLabels(getVisibleNodes()); });
+  document.getElementById('zoom-reset').onclick = ()=>{
+    selectedNodes.clear(); protagonistId=null; document.getElementById('search-box').value='';
+    applyFilters();
+    // Fit all nodes in view after simulation settles
+    setTimeout(()=>{
+      const allCircles = nodeG.selectAll('circle');
+      const xs=[], ys=[];
+      allCircles.each(function(){ const cx=+d3.select(this).attr('cx'), cy=+d3.select(this).attr('cy'); if(!isNaN(cx)){xs.push(cx);ys.push(cy);} });
+      if(xs.length===0) return;
+      const x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+      const padding=40;
+      const sw=w-(padding*2), sh=h-(padding*2);
+      const gw=Math.max(x1-x0,1), gh=Math.max(y1-y0,1);
+      const scale=Math.min(sw/gw, sh/gh, 2);
+      const cx=(x0+x1)/2, cy=(y0+y1)/2;
+      svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity.translate(w/2,h/2).scale(scale).translate(-cx,-cy));
+    }, 500);
+  };
+  svg.on('click', e=>{ if(e.target===svg.node()){ selectedNodes.clear(); protagonistId=null; document.getElementById('search-box').value=''; applyFilters(); } });
 
   const legendRels = document.getElementById('legend-rels');
   Object.entries(REL_LABELS).forEach(([key,label]) => { const div=document.createElement('div'); div.className='item'; div.innerHTML=`<span style="background:${REL_COLORS[key]};width:10px;height:10px;border-radius:50%;display:inline-block"></span>${label}`; legendRels.appendChild(div); });
 
-  window.addEventListener('resize', ()=>{ const w=wrap.clientWidth,h=wrap.clientHeight; svg.attr('width',w).attr('height',h); background.attr('width',w).attr('height',h); simulation.force('center',d3.forceCenter(w/2,h/2)); simulation.alpha(0.1).restart(); });
+  window.addEventListener('resize', ()=>{ const w=wrap.clientWidth,h=wrap.clientHeight; svg.attr('width',w).attr('height',h); simulation.force('center',d3.forceCenter(w/2,h/2)); simulation.alpha(0.1).restart(); });
 }
 
-function resetNetworkView() {
-  selectedNodes.clear();
-  protagonistId = null;
-  document.getElementById('search-box').value = '';
-  applyFilters();
-  svg.interrupt().transition().duration(500).call(zoom.transform,d3.zoomIdentity);
-}
-
-function tick() { linkG.selectAll('line').attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y); nodeG.selectAll('circle').attr('cx',d=>d.x).attr('cy',d=>d.y); labelG.selectAll('text.node-label').attr('x',d=>d.x+nodeRadius(d)+4).attr('y',d=>d.y+4); }
+function tick() { linkG.selectAll('line').attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y); nodeG.selectAll('circle').attr('cx',d=>d.x).attr('cy',d=>d.y); labelG.selectAll('text').attr('x',d=>d.x).attr('y',d=>d.y); }
 
 function showTooltip(event,d) {
   const tip = document.getElementById('tooltip');
@@ -426,11 +408,10 @@ function hideTooltip() { document.getElementById('tooltip').style.opacity=0; }
 function showEdgeTooltip(event,d) {
   if(!selectedNodes.size) return; // only show when something is selected
   const tip = document.getElementById('edge-tooltip');
-  const [sid,tid] = edgeIds(d);
-  const sn = nodeMap[sid]||{}; const tn = nodeMap[tid]||{};
+  const sn = nodeMap[d.source]||{}; const tn = nodeMap[d.target]||{};
   // Find all relationships between these two nodes
-  const rels = allEdges.filter(e => { const [esid,etid]=edgeIds(e); return (esid===sid&&etid===tid)||(esid===tid&&etid===sid); });
-  tip.querySelector('.rel-title').innerHTML = `<span style="color:#58a6ff">${sn.name||sid}</span> ↔ <span style="color:#58a6ff">${tn.name||tid}</span>`;
+  const rels = allEdges.filter(e => (e.source===d.source&&e.target===d.target)||(e.source===d.target&&e.target===d.source));
+  tip.querySelector('.rel-title').innerHTML = `<span style="color:#58a6ff">${sn.name||d.source}</span> ↔ <span style="color:#58a6ff">${tn.name||d.target}</span>`;
   tip.querySelector('.rel-list').innerHTML = rels.map(r => {
     const color = REL_COLORS[r.rel_type]||'#484f58';
     const label = REL_LABELS[r.rel_type]||r.rel_type;
@@ -446,7 +427,7 @@ function highlightConnected(event,d) {
   event.stopPropagation();
   if(!protagonistId||protagonistId===d.id) {
     protagonistId=d.id; selectedNodes.clear(); selectedNodes.add(d.id);
-    primaryEdges.forEach(e=>{ const [sid,tid]=edgeIds(e); if(sid===d.id)selectedNodes.add(tid); if(tid===d.id)selectedNodes.add(sid); });
+    primaryEdges.forEach(e=>{ const sid=typeof e.source==='object'?e.source.id:e.source; const tid=typeof e.target==='object'?e.target.id:e.target; if(sid===d.id)selectedNodes.add(tid); if(tid===d.id)selectedNodes.add(sid); });
     document.getElementById('search-box').value=d.name; applyFilters(); zoomToNode(d.id); return;
   }
   const path = findShortestPath(protagonistId,d.id);
@@ -457,7 +438,7 @@ function highlightConnected(event,d) {
 
 function findShortestPath(startId,endId) {
   const adj={}; allNodes.forEach(n=>adj[n.id]=[]);
-  primaryEdges.forEach(e=>{ const [sid,tid]=edgeIds(e); if(adj[sid])adj[sid].push(tid); if(adj[tid])adj[tid].push(sid); });
+  primaryEdges.forEach(e=>{ if(adj[e.source])adj[e.source].push(e.target); if(adj[e.target])adj[e.target].push(e.source); });
   const visited=new Set(), parent={}; const queue=[startId]; visited.add(startId);
   while(queue.length) {
     const cur=queue.shift();

@@ -36,7 +36,7 @@ class NetworkInteractionTest(unittest.TestCase):
         self.page.goto(NETWORK_URL)
         self.page.wait_for_load_state("networkidle")
         self.page.wait_for_selector("#graph circle")
-        self.page.wait_for_timeout(800)
+        self.page.wait_for_timeout(1400)
 
     def tearDown(self):
         self.page.close()
@@ -57,14 +57,44 @@ class NetworkInteractionTest(unittest.TestCase):
         self.page.locator("#search-results .item").first.click()
         self.page.wait_for_timeout(1000)
 
+    def assert_all_nodes_in_view(self):
+        outside = self.page.evaluate(
+            """
+            () => {
+              const canvas = document.getElementById('canvas-wrap').getBoundingClientRect();
+              return [...document.querySelectorAll('#graph circle')].filter(circle => {
+                const rect = circle.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                return centerX < canvas.left || centerX > canvas.right ||
+                  centerY < canvas.top || centerY > canvas.bottom;
+              }).length;
+            }
+            """
+        )
+        self.assertEqual(outside, 0)
+
     def test_search_path_tooltip_and_reset(self):
         initial = self.stats()
         self.assertGreater(initial["nodes"], 1)
         self.assertGreater(initial["edges"], 0)
         self.assertEqual(initial["nodes"], initial["dom_nodes"])
         self.assertEqual(initial["edges"], initial["dom_edges"])
+        self.assertEqual(initial["nodes"], 679)
+        self.assertEqual(
+            self.page.evaluate(
+                "allNodes.filter(n => ['釋鑒真','黃巢','吳道子'].includes(n.name)).length"
+            ),
+            0,
+        )
+        self.assertGreater(self.page.evaluate("Math.min(...allNodes.map(n => n.degree))"), 0)
         self.assertTrue(self.page.locator("#label-toggle").is_checked())
         self.assertGreater(self.page.locator("#graph .node-label").count(), 0)
+        self.assertGreaterEqual(
+            self.page.locator("#graph .node-label").first.bounding_box()["height"],
+            12,
+        )
+        self.assert_all_nodes_in_view()
 
         self.page.locator("#label-toggle-control").click()
         self.assertEqual(self.page.locator("#graph .node-label").count(), 0)
@@ -82,10 +112,6 @@ class NetworkInteractionTest(unittest.TestCase):
             "杜甫",
             self.page.locator("#graph .node-label").all_text_contents(),
         )
-        screenshot = os.environ.get("NETWORK_SCREENSHOT")
-        if screenshot:
-            self.page.screenshot(path=screenshot)
-
         self.page.evaluate(
             """
             const line = document.querySelector('#graph line');
@@ -100,6 +126,7 @@ class NetworkInteractionTest(unittest.TestCase):
         self.assertGreater(
             self.page.locator("#edge-tooltip .rel-item").count(), 0
         )
+        self.page.evaluate("document.querySelector('#graph line').dispatchEvent(new MouseEvent('mouseout', {bubbles: true}))")
 
         self.page.evaluate(
             """
@@ -114,17 +141,30 @@ class NetworkInteractionTest(unittest.TestCase):
         self.assertGreaterEqual(path["nodes"], 2)
         self.assertGreater(path["edges"], 0)
 
-        self.page.locator("#graph .graph-background").click(
-            position={"x": 12, "y": 12}
-        )
-        self.page.wait_for_timeout(1000)
+        self.page.locator("#zoom-reset").click()
+        self.page.wait_for_timeout(1400)
         reset = self.stats()
         self.assertEqual(self.page.locator("#search-box").input_value(), "")
         self.assertEqual(reset["nodes"], initial["nodes"])
         self.assertEqual(reset["edges"], initial["edges"])
         self.assertEqual(reset["dom_nodes"], initial["dom_nodes"])
         self.assertEqual(reset["dom_edges"], initial["dom_edges"])
-        self.assertAlmostEqual(reset["zoom"], 1, places=2)
+        self.assert_all_nodes_in_view()
+        self.assertTrue(self.page.locator("#label-toggle").is_checked())
+
+        self.select_person("杜甫")
+        self.page.locator("#graph .graph-background").click(
+            position={"x": 12, "y": 12}
+        )
+        self.page.wait_for_timeout(1400)
+        background_reset = self.stats()
+        self.assertEqual(background_reset["nodes"], initial["nodes"])
+        self.assertEqual(background_reset["edges"], initial["edges"])
+        self.assert_all_nodes_in_view()
+
+        screenshot = os.environ.get("NETWORK_SCREENSHOT")
+        if screenshot:
+            self.page.screenshot(path=screenshot)
         self.assertEqual(self.console_errors, [])
 
 

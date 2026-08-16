@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>唐代人物关系网络</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0d1117; color: #e6edf3; font-family: 'PingFang SC','Microsoft YaHei','Heiti TC',sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.container { max-width: 800px; padding: 40px 20px; text-align: center; }
+h1 { font-size: 36px; margin-bottom: 16px; color: #58a6ff; }
+.subtitle { font-size: 18px; color: #8b949e; margin-bottom: 40px; }
+.cards { display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; }
+.card { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 32px; width: 300px; transition: border-color 0.2s; }
+.card:hover { border-color: #58a6ff; }
+.card h2 { font-size: 20px; margin-bottom: 12px; }
+.card p { font-size: 14px; color: #8b949e; line-height: 1.6; margin-bottom: 20px; }
+.card a { display: inline-block; padding: 10px 24px; background: #21262d; border: 1px solid #30363d; border-radius: 6px; color: #58a6ff; text-decoration: none; font-size: 14px; transition: background 0.2s; }
+.card a:hover { background: #30363d; }
+.stats { margin-top: 40px; font-size: 13px; color: #484f58; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>唐代人物关系网络</h1>
+  <p class="subtitle">基于 CBDB 数据的社会关系网络可视化</p>
+  <div class="cards">
+    <div class="card">
+      <h2>交互式网络图</h2>
+      <p>可缩放、可筛选的力导向图。支持按年代、关系类型、连接度等维度筛选，点击人物可查看关联路径。</p>
+      <a href="network.html">打开可视化 →</a>
+    </div>
+  </div>
+  <div class="stats">
+    <p>数据来源：CBDB（中国历代人物传记资料库）</p>
+    <p>核心人物 128 人 · 桥接人物 559 人 · 关系 4,318 条</p>
+  </div>
+</div>
+</body>
+</html>

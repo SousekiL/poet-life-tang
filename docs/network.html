@@ -84,11 +84,8 @@ svg { width: 100%; height: 100%; }
 #legend .item { display: flex; align-items: center; gap: 7px; min-height: 18px; color: #c9d1d9; }
 .legend-line { width: 24px; height: 2px; border-radius: 1px; flex: 0 0 auto; }
 .legend-node { display: inline-block; border-radius: 50%; flex: 0 0 auto; }
-.legend-node.male { width: 10px; height: 10px; background: #58a6ff; }
-.legend-node.female { width: 10px; height: 10px; background: #f85149; }
-.legend-role { display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: #8b949e; flex: 0 0 auto; }
-.legend-role.core { border: 1.5px solid #e6edf3; opacity: 1; }
-.legend-role.bridge { border: 1px solid transparent; opacity: 0.45; }
+.legend-node.male { width: 10px; height: 10px; background: linear-gradient(135deg, #2f81f7 50%, #9ecbff 50%); }
+.legend-node.female { width: 10px; height: 10px; background: linear-gradient(135deg, #e5534b 50%, #ffaaa5 50%); }
 .legend-size-row { display: flex; align-items: center; gap: 8px; color: #c9d1d9; }
 .legend-size-pair { width: 44px; height: 22px; display: flex; align-items: center; justify-content: space-around; }
 .legend-size-low { width: 7px; height: 7px; border-radius: 50%; background: #8b949e; }
@@ -162,9 +159,6 @@ svg { width: 100%; height: 100%; }
       <h4>节点颜色</h4>
       <div class="item"><span class="legend-node male"></span><span>男性</span></div>
       <div class="item"><span class="legend-node female"></span><span>女性</span></div>
-      <h4>人物类型</h4>
-      <div class="item"><span class="legend-role core"></span><span>核心人物</span></div>
-      <div class="item"><span class="legend-role bridge"></span><span>非核心人物</span></div>
       <h4>节点大小</h4>
       <div class="legend-size-row"><span class="legend-size-pair"><i class="legend-size-low"></i><i class="legend-size-high"></i></span><span>中心度低 → 高</span></div>
     </div>
@@ -180,7 +174,16 @@ svg { width: 100%; height: 100%; }
 <script>
 const REL_COLORS = {'KIN':'#fbbf24','TEACHER_STUDENT':'#a78bfa','COLLEAGUE':'#22d3ee','LITERARY':'#4ade80','POLITICAL':'#fb923c','SOCIAL':'#94a3b8'};
 const REL_LABELS = {'KIN':'亲属','TEACHER_STUDENT':'师生','COLLEAGUE':'同僚','LITERARY':'文学','POLITICAL':'政治','SOCIAL':'社交'};
-const GENDER_COLORS = {male:'#58a6ff',female:'#f85149'};
+const NODE_COLORS = {
+  core: {male:'#2f81f7',female:'#e5534b'},
+  bridge: {male:'#9ecbff',female:'#ffaaa5'}
+};
+const GENDER_COLORS = NODE_COLORS.core;
+
+function nodeColor(node) {
+  const roleColors = NODE_COLORS[node.role] || NODE_COLORS.bridge;
+  return roleColors[node.gender] || '#8b949e';
+}
 
 const DYNASTY_ERA_MAP = {'隋':'初唐','南梁':'初唐','周':'盛唐','南唐':'晚唐','吳越':'晚唐','後唐':'晚唐','前蜀':'晚唐','後梁':'晚唐','吳(楊)':'晚唐','宋':'晚唐'};
 
@@ -558,14 +561,14 @@ function applyFilters() {
   const nodesEnter = nodes.enter().append('circle').attr('class','network-node').attr('r',0).attr('vector-effect','non-scaling-stroke').on('mouseover',showTooltip).on('mouseout',hideTooltip).on('click',highlightConnected).call(d3.drag().on('start',dragStarted).on('drag',dragged).on('end',dragEnded));
   nodes.merge(nodesEnter).transition().duration(300)
     .attr('r', d=>screenNodeRadius(d,scale)/scale)
-    .attr('fill', d=>GENDER_COLORS[d.gender]||'#484f58')
+    .attr('fill', nodeColor)
     .attr('opacity', d => {
       if(selectedNodes.size&&!selectedNodes.has(d.id)) return 0.08;
       if(protagonistIds.includes(d.id)) return 1;
-      return d.role==='core'?0.95:0.5;
+      return 0.96;
     })
-    .attr('stroke', d => protagonistIds.includes(d.id)?'#ffd700':d.role==='core'?'#8b949e':'transparent')
-    .attr('stroke-width', d => protagonistIds.includes(d.id)?3:d.role==='core'?1:0);
+    .attr('stroke', d => protagonistIds.includes(d.id)?'#ffd700':'transparent')
+    .attr('stroke-width', d => protagonistIds.includes(d.id)?3:0);
 
   const edges = linkG.selectAll('line').data(visibleEdges, d=>{ const [sourceId,targetId]=edgeIds(d); return `${sourceId}-${targetId}-${d.rel_type}`; });
   edges.exit().transition().duration(300).attr('opacity',0).remove();
@@ -614,7 +617,7 @@ function initGraph() {
 
   const visibleNodes = getVisibleNodes(); const visibleIds = new Set(visibleNodes.map(n=>n.id)); const visibleEdges = getVisibleEdges(visibleIds);
   linkG.selectAll('line').data(visibleEdges).join('line').attr('vector-effect','non-scaling-stroke').attr('stroke',d=>REL_COLORS[d.rel_type]||'#30363d').attr('stroke-width',0.8).attr('opacity',0.45).on('mouseover',showEdgeTooltip).on('mouseout',hideEdgeTooltip);
-  nodeG.selectAll('circle').data(visibleNodes).join('circle').attr('class','network-node').attr('vector-effect','non-scaling-stroke').attr('r',d=>nodeRadius(d)).attr('fill',d=>GENDER_COLORS[d.gender]||'#484f58').attr('stroke',d=>d.role==='core'?'#8b949e':'transparent').attr('stroke-width',d=>d.role==='core'?1:0).attr('opacity',d=>d.role==='core'?0.95:0.5).on('mouseover',showTooltip).on('mouseout',hideTooltip).on('click',highlightConnected).call(d3.drag().on('start',dragStarted).on('drag',dragged).on('end',dragEnded));
+  nodeG.selectAll('circle').data(visibleNodes).join('circle').attr('class','network-node').attr('vector-effect','non-scaling-stroke').attr('r',d=>nodeRadius(d)).attr('fill',nodeColor).attr('stroke','transparent').attr('stroke-width',0).attr('opacity',0.96).on('mouseover',showTooltip).on('mouseout',hideTooltip).on('click',highlightConnected).call(d3.drag().on('start',dragStarted).on('drag',dragged).on('end',dragEnded));
 
   renderLabels(visibleNodes);
 

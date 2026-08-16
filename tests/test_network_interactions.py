@@ -108,6 +108,29 @@ class NetworkInteractionTest(unittest.TestCase):
             """
         )
 
+    def node_fills(self):
+        return self.page.evaluate(
+            """
+            () => Object.fromEntries(['core', 'bridge'].flatMap(role =>
+              ['male', 'female'].map(gender => {
+                const node = [...document.querySelectorAll('#graph circle')]
+                  .find(circle => circle.__data__.role === role &&
+                    circle.__data__.gender === gender);
+                return [`${role}-${gender}`, node?.getAttribute('fill') || null];
+              })
+            ))
+            """
+        )
+
+    @staticmethod
+    def hex_luminance(color):
+        channels = [int(color[index:index + 2], 16) / 255 for index in (1, 3, 5)]
+        linear = [
+            value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4
+            for value in channels
+        ]
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
     def assert_all_nodes_in_view(self):
         outside = self.page.evaluate(
             """
@@ -144,13 +167,28 @@ class NetworkInteractionTest(unittest.TestCase):
         self.assertEqual(self.page.locator("#highlight-mode").count(), 0)
         self.assertEqual(
             self.page.locator("#legend h4").all_text_contents(),
-            ["关系类型", "节点颜色", "人物类型", "节点大小"],
+            ["关系类型", "节点颜色", "节点大小"],
         )
         self.assertEqual(
             self.page.locator("#legend").inner_text().count("男性"), 1
         )
         self.assertEqual(
             self.page.locator("#legend").inner_text().count("女性"), 1
+        )
+        self.assertNotIn("核心人物", self.page.locator("#legend").inner_text())
+        self.assertNotIn("非核心人物", self.page.locator("#legend").inner_text())
+
+        node_fills = self.node_fills()
+        self.assertTrue(all(node_fills.values()), node_fills)
+        self.assertNotEqual(node_fills["core-male"], node_fills["bridge-male"])
+        self.assertNotEqual(node_fills["core-female"], node_fills["bridge-female"])
+        self.assertGreater(
+            self.hex_luminance(node_fills["bridge-male"]),
+            self.hex_luminance(node_fills["core-male"]),
+        )
+        self.assertGreater(
+            self.hex_luminance(node_fills["bridge-female"]),
+            self.hex_luminance(node_fills["core-female"]),
         )
 
         label_counts = []

@@ -1,11 +1,17 @@
 # 质量检查报告
-生成时间: 2026-08-15
+生成时间: 2026-08-16
 人物总数: 128
-关系总数: 561
+关系记录总数（未去重）: 1092
+唯一关系边数: 561
 
 ## 1. 去重检查
 ✅ 无人物ID重复
-✅ 无重复关系记录
+有多条原始证据的边: 529 条
+  - (3130, 32174, 'COLLEAGUE', 'CL_RECOMMEND'): 2条原始记录
+  - (3130, 32847, 'POLITICAL', 'PO_ADMIRE'): 2条原始记录
+  - (3130, 31407, 'LITERARY', 'LI_EPITAPH'): 2条原始记录
+  - (3130, 32174, 'SOCIAL', 'SO_CHANGHE'): 2条原始记录
+  - (3130, 11605, 'SOCIAL', 'SO_GIFT_POETRY'): 2条原始记录
 
 ## 2. 实体对齐检查
 人物表中无任何关系的人物: 7 人
@@ -23,23 +29,25 @@
 生年缺失: 38 人
 卒年缺失: 24 人
 朝代缺失: 0 人
-关系来源缺失: 55/561 条
-关系时间缺失: 540/561 条
+关系来源缺失: 95/1092 条
+关系时间缺失: 1048/1092 条
 
 ## 4. 异常关系检查
 自环关系: 0 条
-正负面关系冲突: 2 对
-  - 柳宗元 ↔ 武元衡: {'negative', 'positive'}
-  - 楊國忠 ↔ 李泌: {'negative', 'positive'}
 
 ## 5. 关系类型分布
-  COLLEAGUE: 16 条
-  KIN: 38 条
-  LITERARY: 22 条
-  POLITICAL: 11 条
-  SOCIAL: 468 条
-  TEACHER_STUDENT: 6 条
+  COLLEAGUE: 32 条
+  KIN: 44 条
+  LITERARY: 44 条
+  POLITICAL: 22 条
+  SOCIAL: 938 条
+  TEACHER_STUDENT: 12 条
 
 ## 6. 证据等级分布
-  inferred: 55 条
-  primary: 506 条
+  primary: 997 条
+  unsourced: 95 条
+
+## 7. 来源覆盖度
+有来源(primary): 997 条
+无来源(unsourced): 95 条
+注意: unsourced 表示 CBDB 中存在直接记录但 c_source 字段为空，并非推断关系。本项目未实现推断算法，故无 inferred 标记。

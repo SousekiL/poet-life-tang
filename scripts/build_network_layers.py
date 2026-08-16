@@ -2,27 +2,38 @@
 """
 Build two-layer network data for Tang Dynasty social network.
 
-Layer 1: Core figures (128 people) with primary relationship marking
+Layer 1: Core figures with primary relationship marking + evidence aggregation
 Layer 2: k=1 bridge-figure expansion (filtered to prevent data explosion)
 
-Bridge figure filter (tiered):
-  Tier A: Must-resolve — peripheral figures connecting orphan core figures to the network
-  Tier B: High-value bridges — peripheral figures connecting 3+ core figures AND creating
-          at least one new path between non-adjacent core figures
-  Tier C: Standard bridges — peripheral figures connecting 2+ core figures AND creating
-          at least one new path between non-adjacent core figures
+Bridge figure filter (strict):
+  - All bridge figures must connect 2+ core figures that are NOT already
+    directly connected in Layer 1.
+  - No single-core dead-end exception. Orphan core figures that cannot be
+    bridged to the main component remain documented as unresolved.
+  - Tier B: connects 3+ core figures with at least one new path
+  - Tier C: connects 2+ core figures with at least one new path
 
 Relationship priority for primary_rel marking:
   KIN(1) > TEACHER_STUDENT(2) > COLLEAGUE(3) > LITERARY(4) > POLITICAL(5) > SOCIAL(6)
   Within same type, prefer higher weight.
+
+Evidence aggregation:
+  When multiple CBDB records map to the same network edge (same source_id, target_id,
+  rel_type, rel_subtype), they are aggregated into a single row with:
+    - evidence_count: number of original records
+    - evidence_list: JSON array of provenance entries (source_table, c_source, c_pages,
+      c_sequence, c_text_title, orig_personid, orig_assoc_id)
+  The best evidence_level is chosen: primary > unsourced.
 """
 
+import argparse
 import csv
-import sqlite3
+import json
 import os
+import sqlite3
 from collections import defaultdict
 
-DB_PATH = "/Users/sousekilyu/Documents/Data/biography_literature_CBDB_china_historical/cbdb202409.db"
+DEFAULT_DB_PATH = "/Users/sousekilyu/Documents/Data/biography_literature_CBDB_china_historical/cbdb202409.db"
 PERSONS_CSV = "data/persons.csv"
 RELATIONSHIPS_CSV = "data/relationships.csv"
 REL_TYPES_CSV = "stage_outputs/relationship_types.csv"
@@ -36,6 +47,13 @@ REL_PRIORITY = {
     "POLITICAL": 5,
     "SOCIAL": 6,
 }
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Build Tang Dynasty network layers")
+    parser.add_argument("--db", default=os.environ.get("CBDB_PATH", DEFAULT_DB_PATH),
+                        help="Path to CBDB SQLite database")
+    return parser.parse_args()
 
 
 def load_persons(path):
@@ -100,13 +118,76 @@ def build_kin_code_mapping(rel_types_path):
     return mapping
 
 
+def aggregate_relationships(rels):
+    """Aggregate raw records by (source_id, target_id, rel_type, rel_subtype).
+
+    Returns deduplicated list with evidence_count and evidence_list.
+    """
+    groups = defaultdict(list)
+    for r in rels:
+        key = (int(r["source_id"]), int(r["target_id"]), r["rel_type"], r["rel_subtype"])
+        groups[key].append(r)
+
+    aggregated = []
+    for key, records in groups.items():
+        # Choose best evidence_level: primary > unsourced
+        has_primary = any(r["evidence_level"] == "primary" for r in records)
+        best_evidence = "primary" if has_primary else "unsourced"
+
+        # Choose best primary record (with source_ref if available, else first)
+        best_record = None
+        for r in records:
+            if r["evidence_level"] == "primary" and r.get("source_ref"):
+                best_record = r
+                break
+        if best_record is None:
+            best_record = records[0]
+
+        # Build evidence list for provenance
+        evidence_entries = []
+        for r in records:
+            entry = {
+                "source_table": r.get("source_table", ""),
+                "c_source": r.get("c_source", ""),
+                "c_pages": r.get("c_pages", ""),
+                "c_sequence": r.get("c_sequence", ""),
+                "c_text_title": r.get("c_text_title", ""),
+                "orig_personid": r.get("orig_personid", ""),
+                "orig_assoc_id": r.get("orig_assoc_id", ""),
+                "cbdb_assoc_code": r.get("cbdb_assoc_code", ""),
+            }
+            evidence_entries.append(entry)
+
+        # Build aggregated row
+        agg = {
+            "source_id": key[0],
+            "target_id": key[1],
+            "rel_type": key[2],
+            "rel_subtype": key[3],
+            "rel_desc_chn": best_record.get("rel_desc_chn", ""),
+            "direction": best_record.get("direction", ""),
+            "year_start": best_record.get("year_start", ""),
+            "year_end": best_record.get("year_end", ""),
+            "weight": best_record.get("weight", ""),
+            "evidence_level": best_evidence,
+            "source_ref": best_record.get("source_ref", ""),
+            "cbdb_assoc_code": best_record.get("cbdb_assoc_code", ""),
+            "cbdb_role_type": best_record.get("cbdb_role_type", ""),
+            "evidence_count": len(records),
+            "evidence_list": json.dumps(evidence_entries, ensure_ascii=False),
+        }
+        aggregated.append(agg)
+
+    return aggregated
+
+
 def select_primary_rel(rels_for_pair):
     best = None
     best_priority = 999
     best_weight = -1
     for r in rels_for_pair:
         priority = REL_PRIORITY.get(r["rel_type"], 99)
-        weight = float(r["weight"])
+        weight = float(r["weight"]) if r.get("weight") else 0
         if priority < best_priority or (priority == best_priority and weight > best_weight):
             best = r
             best_priority = priority
@@ -141,19 +222,20 @@ def extract_all_peripheral_rels(conn, core_ids, code_mapping, kin_code_mapping):
     core_set = set(core_ids)
     id_placeholders = ",".join("?" * len(core_ids))
 
-    # ASSOC_DATA
+    # ASSOC_DATA — fetch full provenance fields
     cursor.execute(f"""
         SELECT c_assoc_code, c_personid, c_assoc_id,
-               c_assoc_year, c_assoc_nh_code, c_source, c_notes, c_text_title
+               c_assoc_year, c_assoc_nh_code, c_source, c_pages, c_notes,
+               c_text_title, c_sequence
         FROM ASSOC_DATA
         WHERE (c_personid IN ({id_placeholders}) OR c_assoc_id IN ({id_placeholders}))
           AND c_assoc_code NOT IN (-1, 0)
     """, core_ids + core_ids)
     assoc_rows = cursor.fetchall()
 
-    # KIN_DATA
+    # KIN_DATA — fetch c_pages too
     cursor.execute(f"""
-        SELECT c_personid, c_kin_id, c_kin_code, c_source, c_notes
+        SELECT c_personid, c_kin_id, c_kin_code, c_source, c_pages, c_notes
         FROM KIN_DATA
         WHERE c_personid IN ({id_placeholders}) OR c_kin_id IN ({id_placeholders})
     """, core_ids + core_ids)
@@ -169,16 +251,16 @@ def extract_all_peripheral_rels(conn, core_ids, code_mapping, kin_code_mapping):
     cursor.execute("SELECT c_nianhao_id, c_firstyear, c_lastyear FROM NIAN_HAO")
     nh_lookup = {r[0]: (r[1], r[2]) for r in cursor.fetchall()}
 
-    cursor.execute("SELECT c_textid, c_title_chn, c_title FROM TEXT_CODES LIMIT 5000")
+    # Full TEXT_CODES load (no LIMIT)
+    cursor.execute("SELECT c_textid, c_title_chn, c_title FROM TEXT_CODES")
     text_lookup = {r[0]: (r[1] or r[2] or "") for r in cursor.fetchall()}
 
-    # Track peripheral->core connections
     periph_core_map = defaultdict(set)
     raw_rels = []
 
     # Process ASSOC_DATA
     for row in assoc_rows:
-        assoc_code, personid, assoc_id, assoc_year, nh_code, source, notes, text_title = row
+        assoc_code, personid, assoc_id, assoc_year, nh_code, source, pages, notes, text_title, sequence = row
 
         if personid in core_set and assoc_id in core_set:
             continue
@@ -230,10 +312,13 @@ def extract_all_peripheral_rels(conn, core_ids, code_mapping, kin_code_mapping):
             if nh_info and nh_info[0]:
                 year_start = nh_info[0]
 
-        evidence = "primary" if source and source > 0 else "inferred"
+        # Evidence: primary if has source, unsourced otherwise
+        c_source_val = source if source and source > 0 else None
+        evidence = "primary" if c_source_val is not None else "unsourced"
+
         source_ref = ""
-        if source and source > 0:
-            source_ref = text_lookup.get(source, f"textid={source}")
+        if c_source_val is not None:
+            source_ref = text_lookup.get(c_source_val, f"textid={c_source_val}")
 
         raw_rels.append({
             "source_id": source_id,
@@ -249,13 +334,20 @@ def extract_all_peripheral_rels(conn, core_ids, code_mapping, kin_code_mapping):
             "source_ref": source_ref,
             "cbdb_assoc_code": assoc_code,
             "cbdb_role_type": role_type or "",
+            "source_table": "ASSOC_DATA",
+            "c_source": c_source_val if c_source_val is not None else "",
+            "c_pages": pages or "",
+            "c_sequence": sequence if sequence is not None else "",
+            "c_text_title": text_title or "",
+            "orig_personid": personid,
+            "orig_assoc_id": assoc_id,
             "core_id": core_id,
             "periph_id": periph_id,
         })
 
     # Process KIN_DATA
     for row in kin_rows:
-        personid, kin_id, kin_code, source, notes = row
+        personid, kin_id, kin_code, source, pages, notes = row
 
         if personid in core_set and kin_id in core_set:
             continue
@@ -288,10 +380,12 @@ def extract_all_peripheral_rels(conn, core_ids, code_mapping, kin_code_mapping):
         else:
             source_id, target_id = personid, kin_id
 
-        evidence = "primary" if source and source > 0 else "inferred"
+        c_source_val = source if source and source > 0 else None
+        evidence = "primary" if c_source_val is not None else "unsourced"
+
         source_ref = ""
-        if source and source > 0:
-            source_ref = text_lookup.get(source, f"textid={source}")
+        if c_source_val is not None:
+            source_ref = text_lookup.get(c_source_val, f"textid={c_source_val}")
 
         kin_detail = kin_info.get(kin_code, ("", "", ""))
 
@@ -309,6 +403,13 @@ def extract_all_peripheral_rels(conn, core_ids, code_mapping, kin_code_mapping):
             "source_ref": source_ref,
             "cbdb_assoc_code": kin_code,
             "cbdb_role_type": "KIN",
+            "source_table": "KIN_DATA",
+            "c_source": c_source_val if c_source_val is not None else "",
+            "c_pages": pages or "",
+            "c_sequence": "",
+            "c_text_title": "",
+            "orig_personid": personid,
+            "orig_assoc_id": kin_id,
             "core_id": core_id,
             "periph_id": periph_id,
         })
@@ -317,13 +418,12 @@ def extract_all_peripheral_rels(conn, core_ids, code_mapping, kin_code_mapping):
 
 
 def filter_bridge_figures(raw_rels, periph_core_map, core_ids, l1_edges, orphan_core_ids):
-    """
-    Tiered bridge figure filter:
-    Tier A: connects to an orphan core figure (must-include)
-    Tier B: connects 3+ core figures with at least one new path
-    Tier C: connects 2+ core figures with at least one new path
+    """Strict bridge figure filter.
 
-    Returns: set of bridge peripheral IDs, and their tier labels.
+    All bridge figures must connect 2+ core figures with at least one new path.
+    No Tier A single-core exception.
+
+    Returns: dict of bridge_id -> tier label.
     """
     core_set = set(core_ids)
     bridge_tiers = {}
@@ -331,9 +431,7 @@ def filter_bridge_figures(raw_rels, periph_core_map, core_ids, l1_edges, orphan_
     for pid, cores in periph_core_map.items():
         connected_cores = sorted(cores & core_set)
         if len(connected_cores) < 2:
-            # Tier A exception: single core connection to orphan
-            if connected_cores and connected_cores[0] in orphan_core_ids:
-                bridge_tiers[pid] = "A"
+            # Strict: no single-core exception. Skip dead-end nodes.
             continue
 
         # Check if any pair of connected cores are NOT directly connected in L1
@@ -400,33 +498,39 @@ def get_bridge_persons_data(conn, bridge_ids):
 
 
 def main():
+    args = parse_args()
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     print("=== Loading existing data ===")
     persons = load_persons(PERSONS_CSV)
-    rels = load_relationships(RELATIONSHIPS_CSV)
+    raw_rels = load_relationships(RELATIONSHIPS_CSV)
     core_ids = list(persons.keys())
     core_set = set(core_ids)
     print(f"  Core figures: {len(core_ids)}")
-    print(f"  Existing relationships: {len(rels)}")
+    print(f"  Raw relationship records: {len(raw_rels)}")
 
-    # Build L1 edge set (undirected)
+    # Aggregate raw records into unique edges with evidence_list
+    print("\n=== Aggregating Layer 1 relationships ===")
+    aggregated_rels = aggregate_relationships(raw_rels)
+    print(f"  Aggregated edges: {len(aggregated_rels)}")
+
+    # Build L1 edge set (undirected) for bridge filtering
     l1_edges = set()
     l1_connected = set()
-    for r in rels:
+    for r in aggregated_rels:
         s, t = int(r["source_id"]), int(r["target_id"])
         l1_edges.add((min(s, t), max(s, t)))
         l1_connected.add(s)
         l1_connected.add(t)
     orphan_core_ids = core_set - l1_connected
+    orphan_names = [persons[p]["name_chn"] for p in orphan_core_ids]
     print(f"  L1 unique edges: {len(l1_edges)}")
-    print(f"  Orphan core figures: {len(orphan_core_ids)} -> {[persons[p]['name_chn'] for p in orphan_core_ids]}")
+    print(f"  Orphan core figures: {len(orphan_core_ids)} -> {orphan_names}")
 
-    # === LAYER 1: Add primary_rel flag ===
-    print("\n=== Building Layer 1 ===")
-    layer1_rels = add_primary_rel_flag(rels)
+    # Add primary_rel flag
+    layer1_rels = add_primary_rel_flag(aggregated_rels)
     primary_count = sum(1 for r in layer1_rels if r["primary_rel"] == 1)
-    print(f"  Total: {len(layer1_rels)}, Primary: {primary_count}")
+    print(f"  Primary relationships: {primary_count}/{len(layer1_rels)}")
 
     primary_by_type = defaultdict(int)
     for r in layer1_rels:
@@ -439,7 +543,8 @@ def main():
     l1_fields = [
         "source_id", "target_id", "rel_type", "rel_subtype", "rel_desc_chn",
         "direction", "year_start", "year_end", "weight", "evidence_level",
-        "source_ref", "cbdb_assoc_code", "cbdb_role_type", "primary_rel"
+        "source_ref", "cbdb_assoc_code", "cbdb_role_type",
+        "evidence_count", "evidence_list", "primary_rel"
     ]
     l1_path = os.path.join(OUTPUT_DIR, "relationships_layer1.csv")
     with open(l1_path, "w", encoding="utf-8", newline="") as f:
@@ -447,23 +552,23 @@ def main():
         writer.writeheader()
         for r in sorted(layer1_rels, key=lambda x: (int(x["source_id"]), int(x["target_id"]))):
             writer.writerow(r)
-    print(f"  Wrote {l1_path}")
+    print(f"  Wrote {l1_path} ({len(layer1_rels)} rows)")
 
     # === LAYER 2: Bridge-figure expansion ===
     print("\n=== Building Layer 2 ===")
     code_mapping = build_code_mapping(REL_TYPES_CSV)
     kin_code_mapping = build_kin_code_mapping(REL_TYPES_CSV)
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(args.db)
 
     print("  Extracting all peripheral relationships from CBDB...")
-    raw_rels, periph_core_map = extract_all_peripheral_rels(conn, core_ids, code_mapping, kin_code_mapping)
-    print(f"  Raw peripheral relationships: {len(raw_rels)}")
+    raw_periph_rels, periph_core_map = extract_all_peripheral_rels(conn, core_ids, code_mapping, kin_code_mapping)
+    print(f"  Raw peripheral records: {len(raw_periph_rels)}")
     print(f"  Peripheral figures with core connections: {len(periph_core_map)}")
 
-    print("  Applying tiered bridge filter...")
-    bridge_tiers = filter_bridge_figures(raw_rels, periph_core_map, core_ids, l1_edges, orphan_core_ids)
-    print(f"  Bridge figures by tier:")
+    print("  Applying strict bridge filter (2+ core, new path, no single-core exception)...")
+    bridge_tiers = filter_bridge_figures(raw_periph_rels, periph_core_map, core_ids, l1_edges, orphan_core_ids)
+    print(f"  Bridge figures: {len(bridge_tiers)}")
     tier_counts = defaultdict(int)
     for pid, tier in bridge_tiers.items():
         tier_counts[tier] += 1
@@ -475,32 +580,27 @@ def main():
     # Fetch bridge figure BIOG_MAIN data
     print("  Fetching bridge figure biographical data...")
     bridge_persons = get_bridge_persons_data(conn, bridge_ids)
-    # Add tier info
     for pid, p in bridge_persons.items():
         p["bridge_tier"] = bridge_tiers.get(pid, "C")
     print(f"  Bridge persons loaded: {len(bridge_persons)}")
 
     conn.close()
 
-    # Filter raw_rels to only bridge figures, deduplicate
-    seen = set()
-    bridge_rels = []
-    for r in raw_rels:
-        s, t = r["source_id"], r["target_id"]
+    # Filter raw_periph_rels to only bridge figures, aggregate
+    bridge_raw = []
+    for r in raw_periph_rels:
         periph_id = r["periph_id"]
         if periph_id not in bridge_ids:
             continue
-        edge_key = (s, t, r["rel_type"], r["rel_subtype"])
-        if edge_key not in seen:
-            seen.add(edge_key)
-            rel_out = {k: v for k, v in r.items() if k not in ("core_id", "periph_id")}
-            rel_out["is_bridge"] = 1
-            bridge_rels.append(rel_out)
+        bridge_raw.append(r)
+
+    print(f"  Bridge raw records: {len(bridge_raw)}")
+    bridge_aggregated = aggregate_relationships(bridge_raw)
+    print(f"  Bridge aggregated edges: {len(bridge_aggregated)}")
 
     # Add primary_rel flag
-    bridge_rels_flagged = add_primary_rel_flag(bridge_rels)
+    bridge_rels_flagged = add_primary_rel_flag(bridge_aggregated)
 
-    print(f"  Bridge relationships (deduplicated): {len(bridge_rels_flagged)}")
     primary_bridge = sum(1 for r in bridge_rels_flagged if r["primary_rel"] == 1)
     print(f"  Primary bridge relationships: {primary_bridge}")
 
@@ -508,7 +608,8 @@ def main():
     l2_fields = [
         "source_id", "target_id", "rel_type", "rel_subtype", "rel_desc_chn",
         "direction", "year_start", "year_end", "weight", "evidence_level",
-        "source_ref", "cbdb_assoc_code", "cbdb_role_type", "primary_rel", "is_bridge"
+        "source_ref", "cbdb_assoc_code", "cbdb_role_type",
+        "evidence_count", "evidence_list", "primary_rel", "is_bridge"
     ]
     l2_rel_path = os.path.join(OUTPUT_DIR, "relationships_layer2.csv")
     with open(l2_rel_path, "w", encoding="utf-8", newline="") as f:
@@ -516,7 +617,7 @@ def main():
         writer.writeheader()
         for r in sorted(bridge_rels_flagged, key=lambda x: (int(x["source_id"]), int(x["target_id"]))):
             writer.writerow(r)
-    print(f"  Wrote {l2_rel_path}")
+    print(f"  Wrote {l2_rel_path} ({len(bridge_rels_flagged)} rows)")
 
     # Write Layer 2 persons
     l2_person_fields = [
@@ -530,7 +631,7 @@ def main():
         writer.writeheader()
         for p in sorted(bridge_persons.values(), key=lambda x: x["c_personid"]):
             writer.writerow(p)
-    print(f"  Wrote {l2_person_path}")
+    print(f"  Wrote {l2_person_path} ({len(bridge_persons)} rows)")
 
     # === Combined dataset ===
     print("\n=== Building combined dataset ===")
@@ -557,7 +658,7 @@ def main():
             if "bridge_tier" not in row:
                 row["bridge_tier"] = ""
             writer.writerow(row)
-    print(f"  Wrote {combined_person_path}")
+    print(f"  Wrote {combined_person_path} ({len(combined_persons)} rows)")
 
     # Write combined relationships
     combined_rel_path = os.path.join(OUTPUT_DIR, "relationships_combined.csv")
@@ -565,33 +666,88 @@ def main():
         writer = csv.DictWriter(f, fieldnames=[
             "source_id", "target_id", "rel_type", "rel_subtype", "rel_desc_chn",
             "direction", "year_start", "year_end", "weight", "evidence_level",
-            "source_ref", "cbdb_assoc_code", "cbdb_role_type", "primary_rel", "is_bridge"
+            "source_ref", "cbdb_assoc_code", "cbdb_role_type",
+            "evidence_count", "evidence_list", "primary_rel", "is_bridge"
         ], extrasaction="ignore")
         writer.writeheader()
         for r in sorted(combined_rels, key=lambda x: (int(x["source_id"]), int(x["target_id"]))):
             row = dict(r)
             if "is_bridge" not in row:
                 row["is_bridge"] = 0
+            if "evidence_count" not in row:
+                row["evidence_count"] = 1
+            if "evidence_list" not in row:
+                row["evidence_list"] = "[]"
             writer.writerow(row)
-    print(f"  Wrote {combined_rel_path}")
+    print(f"  Wrote {combined_rel_path} ({len(combined_rels)} rows)")
+
+    # === Connectivity analysis ===
+    print("\n=== Connectivity Analysis ===")
+    from collections import deque
+
+    # Build adjacency from combined
+    adj = defaultdict(set)
+    for r in combined_rels:
+        s, t = int(r["source_id"]), int(r["target_id"])
+        adj[s].add(t)
+        adj[t].add(s)
+
+    # Find connected components
+    all_nodes = set(combined_persons.keys())
+    visited = set()
+    components = []
+    for n in sorted(all_nodes):
+        if n in visited:
+            continue
+        comp = set()
+        queue = deque([n])
+        while queue:
+            cur = queue.popleft()
+            if cur in visited:
+                continue
+            visited.add(cur)
+            comp.add(cur)
+            for nb in adj.get(cur, []):
+                if nb not in visited:
+                    queue.append(nb)
+        components.append(comp)
+
+    components.sort(key=len, reverse=True)
+    print(f"  Total persons: {len(all_nodes)}")
+    print(f"  Persons in network (with edges): {len(all_nodes - (all_nodes - set().union(*[c for c in components])))}")
+    print(f"  Connected components: {len(components)}")
+    for i, comp in enumerate(components[:5]):
+        comp_names = [combined_persons[p]["name_chn"] for p in comp if p in combined_persons]
+        print(f"    Component {i+1}: {len(comp)} persons — e.g. {comp_names[:5]}")
+
+    # Report persons NOT in the largest component
+    if len(components) > 1:
+        main_component = components[0]
+        core_in_main = sum(1 for p in main_component if p in core_set)
+        print(f"\n  Main component: {len(main_component)} persons ({core_in_main} core)")
+        not_in_main = all_nodes - main_component
+        not_in_main_names = [combined_persons[p]["name_chn"] for p in not_in_main]
+        print(f"  NOT in main component: {len(not_in_main)} persons: {not_in_main_names}")
+
+        # Specifically report orphan core figures
+        orphan_in_main = orphan_core_ids & main_component
+        orphan_not_in_main = orphan_core_ids - main_component
+        if orphan_in_main:
+            print(f"  Orphan core figures now in main component: {[persons[p]['name_chn'] for p in orphan_in_main]}")
+        if orphan_not_in_main:
+            print(f"  Orphan core figures still NOT in main component: {[persons[p]['name_chn'] for p in orphan_not_in_main]}")
+
+    # Persons with no edges at all
+    no_edges = all_nodes - set(adj.keys())
+    if no_edges:
+        no_edge_names = [combined_persons[p]["name_chn"] for p in no_edges]
+        print(f"  Persons with no edges at all: {len(no_edges)}: {no_edge_names}")
 
     # === Final stats ===
     print("\n=== Final Statistics ===")
-    print(f"Layer 1: {len(persons)} core figures, {len(layer1_rels)} relationships ({primary_count} primary)")
-    print(f"Layer 2: {len(bridge_persons)} bridge figures, {len(bridge_rels_flagged)} relationships ({primary_bridge} primary)")
-    print(f"Combined: {len(combined_persons)} persons, {len(combined_rels)} relationships")
-
-    # Check remaining orphans
-    l2_connected = set()
-    for r in combined_rels:
-        l2_connected.add(int(r["source_id"]))
-        l2_connected.add(int(r["target_id"]))
-    remaining_orphans = set(combined_persons.keys()) - l2_connected
-    if remaining_orphans:
-        orphan_names = [combined_persons[p]["name_chn"] for p in remaining_orphans]
-        print(f"Remaining orphans: {len(remaining_orphans)} - {orphan_names}")
-    else:
-        print("No remaining orphans!")
+    print(f"Layer 1: {len(persons)} core figures, {len(layer1_rels)} aggregated edges ({primary_count} primary)")
+    print(f"Layer 2: {len(bridge_persons)} bridge figures, {len(bridge_rels_flagged)} aggregated edges ({primary_bridge} primary)")
+    print(f"Combined: {len(combined_persons)} persons, {len(combined_rels)} aggregated edges")
 
     print("\nDone!")
 

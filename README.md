@@ -25,6 +25,17 @@ python scripts/build_network.py
 python viz/static/generate_network.py
 ```
 
+### 交互网页回归测试
+
+```bash
+pip install -r requirements-dev.txt
+playwright install chromium
+python -m http.server 8765 &
+python -m unittest tests/test_network_interactions.py
+```
+
+测试覆盖人物搜索后的直接关系网、人物间路径、边关系提示，以及点击空白后恢复完整网络与初始缩放。
+
 ## 目录结构
 
 ```

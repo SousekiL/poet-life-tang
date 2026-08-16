@@ -161,6 +161,8 @@ const ROLE_LABELS = {core:'核心人物',bridge:'桥接人物'};
 const DYNASTY_ERA_MAP = {'隋':'初唐','南梁':'初唐','周':'盛唐','南唐':'晚唐','吳越':'晚唐','後唐':'晚唐','前蜀':'晚唐','後梁':'晚唐','吳(楊)':'晚唐','宋':'晚唐'};
 
 function degreeBucket(d) { if(d===0)return'0 (孤立)';if(d<=2)return'1-2';if(d<=5)return'3-5';if(d<=10)return'6-10';if(d<=20)return'11-20';return'20+'; }
+function endpointId(endpoint) { return typeof endpoint === 'object' ? endpoint.id : endpoint; }
+function edgeIds(edge) { return [endpointId(edge.source), endpointId(edge.target)]; }
 
 function getEra(n) {
   let y = n.birthyear;
@@ -174,7 +176,7 @@ let allNodes=[], allEdges=[], nodeMap={};
 let filters = {era:new Set(), rel_type:new Set(), degree:new Set(), gender:new Set(), role:new Set()};
 let selectedNodes = new Set();
 let protagonistId = null;
-let simulation, svg, g, linkG, nodeG, zoom;
+let simulation, svg, background, g, linkG, nodeG, zoom;
 
 const FILTER_DEFS = {
   era: { colors: ERA_COLORS, labelKey: null },
@@ -191,7 +193,7 @@ allEdges = data.edges;
 // Count degrees from primary edges
 const primaryEdges = allEdges.filter(e => e.primary === 1);
 const degreeCount = {};
-primaryEdges.forEach(e => { degreeCount[e.source] = (degreeCount[e.source]||0)+1; degreeCount[e.target] = (degreeCount[e.target]||0)+1; });
+primaryEdges.forEach(e => { const [sid,tid]=edgeIds(e); degreeCount[sid] = (degreeCount[sid]||0)+1; degreeCount[tid] = (degreeCount[tid]||0)+1; });
 allNodes.forEach(n => { n.degree = degreeCount[n.id] || 0; n.degreeBucket = degreeBucket(n.degree); });
 allNodes.forEach(n => nodeMap[n.id] = n);
 
@@ -218,7 +220,7 @@ function initSearch() {
   const results = document.getElementById('search-results');
   box.addEventListener('input', () => {
     const q = box.value.trim().toLowerCase();
-    if(!q) { results.style.display='none'; selectedNodes.clear(); protagonistId=null; applyFilters(); return; }
+    if(!q) { results.style.display='none'; resetNetworkView(); return; }
     const matches = allNodes.filter(n => n.name.includes(q)||(n.name_rm||'').toLowerCase().includes(q)).slice(0,20);
     if(!matches.length) { results.style.display='none'; return; }
     results.innerHTML = matches.map(n => `<div class="item" data-id="${n.id}"><span class="name">${n.name}</span><span class="meta">${n.name_rm||''} · ${n.era} · 度${n.degree}</span></div>`).join('');
@@ -228,7 +230,7 @@ function initSearch() {
         const id = +el.dataset.id;
         protagonistId = id;
         selectedNodes.clear(); selectedNodes.add(id);
-        primaryEdges.forEach(e => { const sid=typeof e.source==='object'?e.source.id:e.source; const tid=typeof e.target==='object'?e.target.id:e.target; if(sid===id)selectedNodes.add(tid); if(tid===id)selectedNodes.add(sid); });
+        primaryEdges.forEach(e => { const [sid,tid]=edgeIds(e); if(sid===id)selectedNodes.add(tid); if(tid===id)selectedNodes.add(sid); });
         box.value = nodeMap[id].name;
         results.style.display='none';
         applyFilters(); zoomToNode(id);
@@ -291,7 +293,8 @@ function getVisibleNodes() {
 }
 function getVisibleEdges(visibleIds) {
   return primaryEdges.filter(e => {
-    if(!visibleIds.has(e.source)||!visibleIds.has(e.target)) return false;
+    const [sid,tid] = edgeIds(e);
+    if(!visibleIds.has(sid)||!visibleIds.has(tid)) return false;
     if(filters.rel_type.size&&!filters.rel_type.has(e.rel_type)) return false;
     return true;
   });
@@ -316,17 +319,17 @@ function applyFilters() {
     .attr('stroke', d => { if(protagonistId&&d.id===protagonistId) return '#ffd700'; return d.role==='core'?'#21262d':'transparent'; })
     .attr('stroke-width', d => { if(protagonistId&&d.id===protagonistId) return 3; return d.role==='core'?1:0; });
 
-  const edges = linkG.selectAll('line').data(visibleEdges, d=>`${d.source}-${d.target}-${d.rel_type}`);
+  const edges = linkG.selectAll('line').data(visibleEdges, d=>{ const [sid,tid]=edgeIds(d); return `${sid}-${tid}-${d.rel_type}`; });
   edges.exit().transition().duration(300).attr('opacity',0).remove();
   const edgesEnter = edges.enter().append('line').attr('opacity',0).on('mouseover',showEdgeTooltip).on('mouseout',hideEdgeTooltip);
   edges.merge(edgesEnter).transition().duration(300)
     .attr('stroke', d=>REL_COLORS[d.rel_type]||'#30363d')
     .attr('stroke-width', d => {
-      if(selectedNodes.size) { if(selectedNodes.has(d.source)&&selectedNodes.has(d.target)) return 2; }
+      if(selectedNodes.size) { const [sid,tid]=edgeIds(d); if(selectedNodes.has(sid)&&selectedNodes.has(tid)) return 2; }
       return 0.8;
     })
     .attr('opacity', d => {
-      if(selectedNodes.size) { if(selectedNodes.has(d.source)&&selectedNodes.has(d.target)) return 0.8; return 0.05; }
+      if(selectedNodes.size) { const [sid,tid]=edgeIds(d); if(selectedNodes.has(sid)&&selectedNodes.has(tid)) return 0.8; return 0.05; }
       return 0.45;
     });
 
@@ -343,7 +346,9 @@ function initGraph() {
   const wrap = document.getElementById('canvas-wrap'); const w=wrap.clientWidth, h=wrap.clientHeight;
   svg = d3.select('#graph').attr('width',w).attr('height',h);
   zoom = d3.zoom().scaleExtent([0.1,8]).on('zoom', e=>g.attr('transform',e.transform));
-  svg.call(zoom); g = svg.append('g'); linkG = g.append('g'); nodeG = g.append('g');
+  svg.call(zoom);
+  background = svg.append('rect').attr('class','graph-background').attr('width',w).attr('height',h).attr('fill','transparent').on('click',resetNetworkView);
+  g = svg.append('g'); linkG = g.append('g'); nodeG = g.append('g');
 
   const visibleNodes = getVisibleNodes(); const visibleIds = new Set(visibleNodes.map(n=>n.id)); const visibleEdges = getVisibleEdges(visibleIds);
   linkG.selectAll('line').data(visibleEdges).join('line').attr('stroke',d=>REL_COLORS[d.rel_type]||'#30363d').attr('stroke-width',0.8).attr('opacity',0.45).on('mouseover',showEdgeTooltip).on('mouseout',hideEdgeTooltip);
@@ -353,13 +358,20 @@ function initGraph() {
 
   document.getElementById('zoom-in').onclick = ()=>svg.transition().call(zoom.scaleBy,1.5);
   document.getElementById('zoom-out').onclick = ()=>svg.transition().call(zoom.scaleBy,0.67);
-  document.getElementById('zoom-reset').onclick = ()=>{ selectedNodes.clear(); protagonistId=null; document.getElementById('search-box').value=''; svg.transition().call(zoom.transform,d3.zoomIdentity); applyFilters(); };
-  svg.on('click', e=>{ if(e.target===svg.node()){ selectedNodes.clear(); protagonistId=null; document.getElementById('search-box').value=''; applyFilters(); } });
+  document.getElementById('zoom-reset').onclick = resetNetworkView;
 
   const legendRels = document.getElementById('legend-rels');
   Object.entries(REL_LABELS).forEach(([key,label]) => { const div=document.createElement('div'); div.className='item'; div.innerHTML=`<span style="background:${REL_COLORS[key]};width:10px;height:10px;border-radius:50%;display:inline-block"></span>${label}`; legendRels.appendChild(div); });
 
-  window.addEventListener('resize', ()=>{ const w=wrap.clientWidth,h=wrap.clientHeight; svg.attr('width',w).attr('height',h); simulation.force('center',d3.forceCenter(w/2,h/2)); simulation.alpha(0.1).restart(); });
+  window.addEventListener('resize', ()=>{ const w=wrap.clientWidth,h=wrap.clientHeight; svg.attr('width',w).attr('height',h); background.attr('width',w).attr('height',h); simulation.force('center',d3.forceCenter(w/2,h/2)); simulation.alpha(0.1).restart(); });
+}
+
+function resetNetworkView() {
+  selectedNodes.clear();
+  protagonistId = null;
+  document.getElementById('search-box').value = '';
+  applyFilters();
+  svg.interrupt().transition().duration(500).call(zoom.transform,d3.zoomIdentity);
 }
 
 function tick() { linkG.selectAll('line').attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y); nodeG.selectAll('circle').attr('cx',d=>d.x).attr('cy',d=>d.y); }
@@ -376,10 +388,11 @@ function hideTooltip() { document.getElementById('tooltip').style.opacity=0; }
 function showEdgeTooltip(event,d) {
   if(!selectedNodes.size) return; // only show when something is selected
   const tip = document.getElementById('edge-tooltip');
-  const sn = nodeMap[d.source]||{}; const tn = nodeMap[d.target]||{};
+  const [sid,tid] = edgeIds(d);
+  const sn = nodeMap[sid]||{}; const tn = nodeMap[tid]||{};
   // Find all relationships between these two nodes
-  const rels = allEdges.filter(e => (e.source===d.source&&e.target===d.target)||(e.source===d.target&&e.target===d.source));
-  tip.querySelector('.rel-title').innerHTML = `<span style="color:#58a6ff">${sn.name||d.source}</span> ↔ <span style="color:#58a6ff">${tn.name||d.target}</span>`;
+  const rels = allEdges.filter(e => { const [esid,etid]=edgeIds(e); return (esid===sid&&etid===tid)||(esid===tid&&etid===sid); });
+  tip.querySelector('.rel-title').innerHTML = `<span style="color:#58a6ff">${sn.name||sid}</span> ↔ <span style="color:#58a6ff">${tn.name||tid}</span>`;
   tip.querySelector('.rel-list').innerHTML = rels.map(r => {
     const color = REL_COLORS[r.rel_type]||'#484f58';
     const label = REL_LABELS[r.rel_type]||r.rel_type;
@@ -395,7 +408,7 @@ function highlightConnected(event,d) {
   event.stopPropagation();
   if(!protagonistId||protagonistId===d.id) {
     protagonistId=d.id; selectedNodes.clear(); selectedNodes.add(d.id);
-    primaryEdges.forEach(e=>{ const sid=typeof e.source==='object'?e.source.id:e.source; const tid=typeof e.target==='object'?e.target.id:e.target; if(sid===d.id)selectedNodes.add(tid); if(tid===d.id)selectedNodes.add(sid); });
+    primaryEdges.forEach(e=>{ const [sid,tid]=edgeIds(e); if(sid===d.id)selectedNodes.add(tid); if(tid===d.id)selectedNodes.add(sid); });
     document.getElementById('search-box').value=d.name; applyFilters(); zoomToNode(d.id); return;
   }
   const path = findShortestPath(protagonistId,d.id);
@@ -406,7 +419,7 @@ function highlightConnected(event,d) {
 
 function findShortestPath(startId,endId) {
   const adj={}; allNodes.forEach(n=>adj[n.id]=[]);
-  primaryEdges.forEach(e=>{ if(adj[e.source])adj[e.source].push(e.target); if(adj[e.target])adj[e.target].push(e.source); });
+  primaryEdges.forEach(e=>{ const [sid,tid]=edgeIds(e); if(adj[sid])adj[sid].push(tid); if(adj[tid])adj[tid].push(sid); });
   const visited=new Set(), parent={}; const queue=[startId]; visited.add(startId);
   while(queue.length) {
     const cur=queue.shift();

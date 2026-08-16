@@ -100,6 +100,14 @@ class NetworkInteractionTest(unittest.TestCase):
             """
         )
 
+    def labeled_roles(self):
+        return self.page.evaluate(
+            """
+            () => [...document.querySelectorAll('#graph .node-label')]
+              .map(label => label.__data__.role)
+            """
+        )
+
     def assert_all_nodes_in_view(self):
         outside = self.page.evaluate(
             """
@@ -127,15 +135,16 @@ class NetworkInteractionTest(unittest.TestCase):
         self.assertGreater(initial["labels"], 0)
         self.assert_all_nodes_in_view()
 
-        for removed_filter in ("era", "degree", "role"):
+        for removed_filter in ("era", "degree"):
             self.assertEqual(self.page.locator(f"#combo-{removed_filter}").count(), 0)
+        self.assertEqual(self.page.locator("#combo-role").count(), 1)
         self.assertEqual(
             self.page.locator("#sidebar .guide").count(), 1
         )
         self.assertEqual(self.page.locator("#highlight-mode").count(), 0)
         self.assertEqual(
             self.page.locator("#legend h4").all_text_contents(),
-            ["关系类型", "节点颜色", "节点大小"],
+            ["关系类型", "节点颜色", "人物类型", "节点大小"],
         )
         self.assertEqual(
             self.page.locator("#legend").inner_text().count("男性"), 1
@@ -149,6 +158,7 @@ class NetworkInteractionTest(unittest.TestCase):
             self.set_label_density(level)
             label_counts.append(self.stats()["labels"])
             self.assertEqual(self.label_overlap_count(), 0)
+            self.assertTrue(all(role == "core" for role in self.labeled_roles()))
         self.assertEqual(label_counts[0], 0)
         self.assertTrue(
             all(after > before for before, after in zip(label_counts, label_counts[1:])),
@@ -157,6 +167,37 @@ class NetworkInteractionTest(unittest.TestCase):
         self.assertEqual(
             self.page.locator("#graph .label-leader").count(), label_counts[-1]
         )
+
+        role_input = self.page.locator("#combo-role .combo-input")
+        role_input.click()
+        self.page.locator("#combo-role .combo-option[data-val='bridge']").click()
+        self.page.wait_for_timeout(450)
+        expected_core = self.page.evaluate(
+            "() => allNodes.filter(node => node.role === 'core').length"
+        )
+        self.assertEqual(self.stats()["nodes"], expected_core)
+        self.assertTrue(
+            self.page.evaluate(
+                "() => [...document.querySelectorAll('#graph circle')].every(node => node.__data__.role === 'core')"
+            )
+        )
+        self.assertTrue(all(role == "core" for role in self.labeled_roles()))
+
+        self.page.evaluate("selectAll('role')")
+        role_input.fill("core")
+        self.page.locator("#combo-role .combo-option[data-val='core']").click()
+        self.page.wait_for_timeout(450)
+        self.set_label_density(5)
+        self.assertGreater(self.stats()["nodes"], 0)
+        self.assertEqual(self.stats()["labels"], 0)
+        first_bridge = self.page.locator("#graph circle").first
+        bridge_name = first_bridge.evaluate("node => node.__data__.name")
+        first_bridge.hover()
+        self.page.wait_for_timeout(100)
+        self.assertEqual(self.page.locator("#tooltip .name").inner_text(), bridge_name)
+        self.assertIn("非核心人物", self.page.locator("#tooltip .detail").inner_text())
+        self.page.evaluate("selectAll('role')")
+        self.page.wait_for_timeout(450)
 
         self.set_label_density(2)
         before_zoom_label_height = self.page.locator(
@@ -230,6 +271,10 @@ class NetworkInteractionTest(unittest.TestCase):
         screenshot = os.environ.get("NETWORK_SCREENSHOT")
         if screenshot:
             self.page.screenshot(path=screenshot, full_page=True)
+
+        for name in ("王維", "白居易", "韓愈", "柳宗元"):
+            self.select_person(name)
+        self.assertEqual(self.page.locator("#search-selection .person-chip").count(), 6)
 
         self.page.locator("#zoom-reset").click()
         self.page.wait_for_timeout(750)

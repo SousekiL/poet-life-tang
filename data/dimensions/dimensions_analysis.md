@@ -71,25 +71,26 @@
 
 - 关系数量: 38
 - 涉及人物数: 31
-- 主要子类型:
+- 所有子类型:
   - K_OTHER: 15
   - K_CHILD: 6
   - K_PARENT: 6
   - K_SPOUSE: 4
   - K_AFFINAL: 4
+  - K_SIBLING: 3
 
 #### TEACHER_STUDENT
 
 - 关系数量: 6
 - 涉及人物数: 8
-- 主要子类型:
+- 所有子类型:
   - TS_STUDENT: 6
 
 #### COLLEAGUE
 
 - 关系数量: 16
 - 涉及人物数: 21
-- 主要子类型:
+- 所有子类型:
   - CL_SUPERIOR: 6
   - CL_TONGLIAO: 5
   - CL_RECOMMEND: 2
@@ -100,18 +101,19 @@
 
 - 关系数量: 22
 - 涉及人物数: 25
-- 主要子类型:
+- 所有子类型:
   - LI_EPITAPH: 11
   - LI_PREAMBLE: 3
   - LI_EULOGY: 3
   - LI_STYLE: 2
   - LI_LETTER: 2
+  - LI_PRAISE_POETRY: 1
 
 #### POLITICAL
 
 - 关系数量: 11
 - 涉及人物数: 16
-- 主要子类型:
+- 所有子类型:
   - PO_ADMIRE: 7
   - PO_OPPOSE: 4
 
@@ -119,7 +121,7 @@
 
 - 关系数量: 468
 - 涉及人物数: 118
-- 主要子类型:
+- 所有子类型:
   - SO_GIFT_POETRY: 433
   - SO_FRIEND: 25
   - SO_CHANGHE: 8

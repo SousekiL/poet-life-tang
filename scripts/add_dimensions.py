@@ -333,8 +333,8 @@ def write_markdown_report(output_path, k_core, k_all, type_core, type_all, perio
                 subtypes = defaultdict(int)
                 for r in data["rels"]:
                     subtypes[r.get("rel_subtype", "unknown")] += 1
-                f.write("- 主要子类型:\n")
-                for subtype, count in sorted(subtypes.items(), key=lambda x: -x[1])[:5]:
+                f.write("- 所有子类型:\n")
+                for subtype, count in sorted(subtypes.items(), key=lambda x: -x[1]):
                     f.write(f"  - {subtype}: {count}\n")
                 f.write("\n")
         

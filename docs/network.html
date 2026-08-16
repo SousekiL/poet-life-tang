@@ -70,6 +70,9 @@ svg { width: 100%; height: 100%; }
 #controls { position: absolute; bottom: 16px; right: 16px; display: flex; flex-direction: column; gap: 6px; }
 #controls button { width: 36px; height: 36px; background: #161b22; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 #controls button:hover { background: #21262d; }
+#controls button.active { background: #1f6feb; border-color: #58a6ff; }
+
+.select-rect { fill: rgba(88,166,255,0.1); stroke: #58a6ff; stroke-width: 1; stroke-dasharray: 4 2; pointer-events: none; }
 
 #highlight-mode { position: absolute; bottom: 16px; left: 16px; background: rgba(22,27,34,0.92); border: 1px solid #30363d; border-radius: 8px; padding: 10px 16px; font-size: 12px; color: #8b949e; line-height: 1.8; max-width: 480px; cursor: pointer; user-select: none; }
 #highlight-mode strong { color: #58a6ff; }
@@ -136,13 +139,15 @@ svg { width: 100%; height: 100%; }
       <button id="zoom-in" title="放大">+</button>
       <button id="zoom-out" title="缩小">−</button>
       <button id="zoom-reset" title="重置：清除选中状态并恢复初始缩放">⟲</button>
+      <button id="select-mode" title="框选放大：拖拽选择区域放大查看">⬚</button>
     </div>
     <div id="highlight-mode" onclick="this.classList.toggle('open')">
       <div class="guide-title"><span class="arrow">▶</span><strong>操作指南</strong></div>
       <div class="guide-body">
         🔍 搜索框 → 选择人物作为<strong>主人公</strong>（金色边框）<br>
         👆 点击其他人物 → 显示与主人公的<strong>关联路径</strong><br>
-        🖱️ 点击空白 / ⟲ 重置 → 清除选中
+        ⬚ 框选按钮 → 拖拽选择区域<strong>放大查看</strong>，放大后显示更多名字<br>
+        🖱️ 滚轮缩放 / 点击空白 / ⟲ 重置 → 清除选中
       </div>
     </div>
   </div>
@@ -194,6 +199,8 @@ const primaryEdges = allEdges.filter(e => e.primary === 1);
 const degreeCount = {};
 primaryEdges.forEach(e => { degreeCount[e.source] = (degreeCount[e.source]||0)+1; degreeCount[e.target] = (degreeCount[e.target]||0)+1; });
 allNodes.forEach(n => { n.degree = degreeCount[n.id] || 0; n.degreeBucket = degreeBucket(n.degree); });
+// 移除孤立节点
+allNodes = allNodes.filter(n => n.degree > 0);
 allNodes.forEach(n => nodeMap[n.id] = n);
 
 Object.keys(filters).forEach(key => { getFilterValues(key).forEach(v => filters[key].add(v)); });
@@ -451,6 +458,117 @@ function findShortestPath(startId,endId) {
 function dragStarted(event,d) { if(!event.active)simulation.alphaTarget(0.3).restart(); d.fx=d.x;d.fy=d.y; }
 function dragged(event,d) { d.fx=event.x;d.fy=event.y; }
 function dragEnded(event,d) { if(!event.active)simulation.alphaTarget(0); d.fx=null;d.fy=null; }
+
+// === 框选放大功能 ===
+let selectMode = false;
+let selectRect = null;
+let selectStart = null;
+
+document.getElementById('select-mode').addEventListener('click', () => {
+  selectMode = !selectMode;
+  document.getElementById('select-mode').classList.toggle('active', selectMode);
+  svg.style('cursor', selectMode ? 'crosshair' : 'default');
+  // When select mode is active, disable zoom panning (but keep scroll zoom)
+  zoom.filter(event => {
+    if (selectMode && event.type === 'mousedown') return false;
+    return !event.ctrlKey && !event.button;
+  });
+});
+
+svg.on('mousedown.select', function(event) {
+  if (!selectMode) return;
+  if (event.button !== 0) return;
+  // Only start selection on empty canvas (not on nodes)
+  if (event.target !== this) return;
+  const [x, y] = d3.pointer(event, g.node());
+  selectStart = { x, y };
+  selectRect = g.append('rect').attr('class', 'select-rect')
+    .attr('x', x).attr('y', y).attr('width', 0).attr('height', 0);
+  event.preventDefault();
+});
+
+svg.on('mousemove.select', function(event) {
+  if (!selectMode || !selectStart || !selectRect) return;
+  const [x, y] = d3.pointer(event, g.node());
+  const x0 = Math.min(selectStart.x, x), y0 = Math.min(selectStart.y, y);
+  const w = Math.abs(x - selectStart.x), h = Math.abs(y - selectStart.y);
+  selectRect.attr('x', x0).attr('y', y0).attr('width', w).attr('height', h);
+});
+
+svg.on('mouseup.select', function(event) {
+  if (!selectMode || !selectStart || !selectRect) return;
+  const [x, y] = d3.pointer(event, g.node());
+  const x0 = Math.min(selectStart.x, x), y0 = Math.min(selectStart.y, y);
+  const selW = Math.abs(x - selectStart.x), selH = Math.abs(y - selectStart.y);
+  selectRect.remove(); selectRect = null; selectStart = null;
+
+  if (selW < 10 || selH < 10) return; // too small, ignore
+
+  // Zoom to selected area
+  const canvasW = +svg.attr('width'), canvasH = +svg.attr('height');
+  const padding = 20;
+  const scaleX = (canvasW - padding * 2) / selW;
+  const scaleY = (canvasH - padding * 2) / selH;
+  const scale = Math.min(scaleX, scaleY, 8);
+  const cx = x0 + selW / 2, cy = y0 + selH / 2;
+  svg.transition().duration(500).call(
+    zoom.transform,
+    d3.zoomIdentity.translate(canvasW / 2, canvasH / 2).scale(scale).translate(-cx, -cy)
+  );
+
+  // Exit select mode after use
+  selectMode = false;
+  document.getElementById('select-mode').classList.remove('active');
+  svg.style('cursor', 'default');
+  zoom.filter(event => !event.ctrlKey && !event.button); // restore default filter
+});
+
+// === 动态标签：缩放时显示更多名字 ===
+function updateLabelsForZoom(transform) {
+  const scale = transform.k;
+  const visibleNodes = getVisibleNodes().filter(n => n.x !== undefined);
+
+  // 根据缩放级别决定显示哪些标签
+  let labelNodes;
+  if (scale >= 3) {
+    // 高倍缩放：显示所有可见节点的名字
+    labelNodes = visibleNodes;
+  } else if (scale >= 1.5) {
+    // 中等缩放：显示度 >= 10 的节点
+    labelNodes = visibleNodes.filter(n => n.degree >= 10);
+  } else if (scale >= 0.8) {
+    // 默认缩放：只显示著名诗人
+    labelNodes = visibleNodes.filter(n => FAMOUS_POETS.includes(n.name));
+  } else {
+    // 缩小时：只显示度 >= 30 的
+    labelNodes = visibleNodes.filter(n => n.degree >= 30);
+  }
+
+  const labels = labelG.selectAll('text').data(labelNodes, d => d.id);
+  labels.exit().transition().duration(200).attr('opacity', 0).remove();
+  labels.enter().append('text')
+    .attr('text-anchor', 'middle')
+    .attr('fill', '#e6edf3')
+    .attr('font-weight', '600')
+    .attr('pointer-events', 'none')
+    .attr('opacity', 0)
+    .merge(labels)
+    .attr('dy', d => -nodeRadius(d) - 4)
+    .attr('font-size', d => {
+      if (scale >= 3) return '10px';
+      if (scale >= 1.5) return '11px';
+      return '12px';
+    })
+    .text(d => d.name)
+    .transition().duration(200).attr('opacity', 1);
+}
+
+// Hook into zoom events to update labels
+const originalZoomHandler = zoom.on('zoom');
+zoom.on('zoom', function(event) {
+  originalZoomHandler.call(this, event);
+  updateLabelsForZoom(event.transform);
+});
 </script>
 </body>
 </html>

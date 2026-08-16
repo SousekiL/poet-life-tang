@@ -130,7 +130,7 @@ svg { width: 100%; height: 100%; }
     </div>
     <div class="filter-group guide">
       <h3>操作指南</h3>
-      <p><strong>搜索人物</strong>：可连续选择一至两位中心人物；图中会合并显示直接关系与两人之间的路径。</p>
+      <p><strong>搜索人物</strong>：可选择多个人物作为中心；图中会合并显示直接关系与各人物之间的最短路径。</p>
       <p><strong>浏览网络</strong>：滚轮缩放，拖动画布平移；姓名字号始终保持不变。</p>
       <p><strong>框选放大</strong>：点击右下角 ⬚，再在图中拖出区域；只改变视窗，节点仅轻微增大，不重排节点或连线。</p>
       <p><strong>恢复总图</strong>：点击 ⟲ 返回网页初次打开时的完整网络。</p>
@@ -277,7 +277,7 @@ function initSearch() {
   const results = document.getElementById('search-results');
   box.addEventListener('input', () => {
     const q = box.value.trim().toLowerCase();
-    if(!q || protagonistIds.length>=2) { results.style.display='none'; return; }
+    if(!q) { results.style.display='none'; return; }
     const matches = allNodes.filter(n =>
       !protagonistIds.includes(n.id) &&
       (n.name.includes(q)||(n.name_rm||'').toLowerCase().includes(q))
@@ -306,12 +306,11 @@ function renderSearchSelection() {
     button.addEventListener('click',()=>removeCenterPerson(+button.parentElement.dataset.id));
   });
   const box = document.getElementById('search-box');
-  box.placeholder = protagonistIds.length>=2 ? '已选择两位人物，可先移除后更换' : '输入姓名，可连续选择一至两位人物...';
+  box.placeholder = protagonistIds.length ? `已选择 ${protagonistIds.length} 位人物，可继续添加` : '输入姓名，可选择多个人物...';
 }
 
 function selectCenterPerson(id) {
   if(protagonistIds.includes(id)) return;
-  if(protagonistIds.length>=2) return;
   protagonistIds.push(id);
   rebuildCenteredNetwork();
 }
@@ -335,9 +334,12 @@ function rebuildCenteredNetwork() {
     if(protagonistIds.includes(sourceId)) selectedNodes.add(targetId);
     if(protagonistIds.includes(targetId)) selectedNodes.add(sourceId);
   });
-  if(protagonistIds.length===2) {
-    const path = findShortestPath(protagonistIds[0],protagonistIds[1]);
-    if(path) path.forEach(id=>selectedNodes.add(id));
+  // Find shortest paths between ALL pairs of selected people
+  for(let i=0; i<protagonistIds.length; i++) {
+    for(let j=i+1; j<protagonistIds.length; j++) {
+      const path = findShortestPath(protagonistIds[i],protagonistIds[j]);
+      if(path) path.forEach(id=>selectedNodes.add(id));
+    }
   }
   renderSearchSelection();
   applyFilters();
@@ -346,7 +348,8 @@ function rebuildCenteredNetwork() {
 
 function zoomToCenters() {
   const nodes = getVisibleNodes().filter(node=>Number.isFinite(node.x)&&Number.isFinite(node.y));
-  fitNodesToView(nodes,750,110,protagonistIds.length===1?3:2.6);
+  const maxScale = protagonistIds.length===1 ? 3 : 2.6;
+  fitNodesToView(nodes,750,110,maxScale);
 }
 
 function initCombo(key) {
@@ -718,8 +721,7 @@ function hideEdgeTooltip() { document.getElementById('edge-tooltip').style.opaci
 function highlightConnected(event,d) {
   event.stopPropagation();
   if(protagonistIds.includes(d.id)) return;
-  if(protagonistIds.length<2) protagonistIds.push(d.id);
-  else protagonistIds[1]=d.id;
+  protagonistIds.push(d.id);
   document.getElementById('search-box').value='';
   rebuildCenteredNetwork();
 }

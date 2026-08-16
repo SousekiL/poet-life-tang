@@ -104,10 +104,17 @@ svg { width: 100%; height: 100%; }
     <h1>唐代人物关系网络</h1>
     <div id="search-wrap">
       <span id="search-icon">🔍</span>
-      <input type="text" id="search-box" placeholder="输入姓名，可连续选择一至两位人物..." autocomplete="off">
+      <input type="text" id="search-box" placeholder="输入姓名，最多可选择五位人物..." autocomplete="off">
       <div id="search-results"></div>
       <div id="search-selection" aria-live="polite"></div>
-      <div class="hint-text">最多选择两位中心人物；页面会合并显示两人的直接关系网络与两人之间的关联路径。</div>
+      <div class="hint-text">最多选择五位中心人物；页面会合并显示各人物的直接关系网络与关联路径。</div>
+    </div>
+    <div class="filter-group">
+      <h3>姓名标签 Label density</h3>
+      <div class="label-density-head"><span>按当前视野内的连接度排序</span><output id="label-density-output" for="label-density">核心</output></div>
+      <input id="label-density" type="range" min="0" max="5" step="1" value="2" aria-label="姓名标签显示密度">
+      <div class="label-density-scale" aria-hidden="true"><span>不显示</span><span>更多</span><span>尽可能多</span></div>
+      <div class="hint-text">放大或框选后会按当前区域重新排序；同一档会自动显示该区域最重要的人物。</div>
     </div>
     <div class="filter-group">
       <h3>关系类型 Relation</h3>
@@ -121,16 +128,9 @@ svg { width: 100%; height: 100%; }
       <div class="combo-wrap" id="combo-gender"></div>
       <div class="selected-tags" id="tags-gender"></div>
     </div>
-    <div class="filter-group">
-      <h3>姓名标签 Label density</h3>
-      <div class="label-density-head"><span>按当前视野内的连接度排序</span><output id="label-density-output" for="label-density">核心</output></div>
-      <input id="label-density" type="range" min="0" max="5" step="1" value="2" aria-label="姓名标签显示密度">
-      <div class="label-density-scale" aria-hidden="true"><span>不显示</span><span>更多</span><span>尽可能多</span></div>
-      <div class="hint-text">放大或框选后会按当前区域重新排序；同一档会自动显示该区域最重要的人物。</div>
-    </div>
     <div class="filter-group guide">
       <h3>操作指南</h3>
-      <p><strong>搜索人物</strong>：可选择多个人物作为中心；图中会合并显示直接关系与各人物之间的最短路径。</p>
+      <p><strong>搜索人物</strong>：最多选择五位人物作为中心；图中会合并显示直接关系与各人物之间的最短路径。鼠标悬停节点可查看与选中人物的关系。</p>
       <p><strong>浏览网络</strong>：滚轮缩放，拖动画布平移；姓名字号始终保持不变。</p>
       <p><strong>框选放大</strong>：点击右下角 ⬚，再在图中拖出区域；只改变视窗，节点仅轻微增大，不重排节点或连线。</p>
       <p><strong>恢复总图</strong>：点击 ⟲ 返回网页初次打开时的完整网络。</p>
@@ -311,6 +311,7 @@ function renderSearchSelection() {
 
 function selectCenterPerson(id) {
   if(protagonistIds.includes(id)) return;
+  if(protagonistIds.length >= 5) return;
   protagonistIds.push(id);
   rebuildCenteredNetwork();
 }
@@ -694,7 +695,31 @@ function showTooltip(event,d) {
   const tip = document.getElementById('tooltip');
   const years = d.birthyear?`${d.birthyear}—${d.deathyear||'?'}`:'生卒年不详';
   tip.querySelector('.name').textContent = d.name;
-  tip.querySelector('.detail').innerHTML = `${d.name_rm||''}<br>年代: ${d.era} · ${years}<br>性别: ${d.gender==='female'?'女':'男'} · ${d.role==='core'?'核心':'桥接'}<br>连接度: ${d.degree}`;
+  let relInfo = '';
+  if(protagonistIds.length && !protagonistIds.includes(d.id)) {
+    const relLines = [];
+    protagonistIds.forEach(pid => {
+      if(pid === d.id) return;
+      const pName = (nodeMap[pid]||{}).name || pid;
+      const rels = allEdges.filter(e => {
+        const [s,t] = edgeIds(e);
+        return (s===d.id && t===pid) || (s===pid && t===d.id);
+      });
+      if(rels.length) {
+        rels.forEach(r => {
+          const color = REL_COLORS[r.rel_type]||'#484f58';
+          const label = REL_LABELS[r.rel_type]||r.rel_type;
+          const desc = r.rel_desc || r.rel_subtype || '';
+          const pri = r.primary?'★':'';
+          relLines.push(`<span style="color:${color}">${pri}${label}</span>${desc?' · '+desc:''} <span style="color:#8b949e">←${pName}</span>`);
+        });
+      } else {
+        relLines.push(`<span style="color:#484f58">无直接关系</span> <span style="color:#8b949e">←${pName}</span>`);
+      }
+    });
+    if(relLines.length) relInfo = '<br><br>' + relLines.join('<br>');
+  }
+  tip.querySelector('.detail').innerHTML = `${d.name_rm||''}<br>年代: ${d.era} · ${years}<br>性别: ${d.gender==='female'?'女':'男'} · ${d.role==='core'?'核心':'桥接'}<br>连接度: ${d.degree}${relInfo}`;
   tip.style.opacity=1; tip.style.left=(event.pageX+16)+'px'; tip.style.top=(event.pageY-10)+'px';
 }
 function hideTooltip() { document.getElementById('tooltip').style.opacity=0; }
@@ -721,6 +746,7 @@ function hideEdgeTooltip() { document.getElementById('edge-tooltip').style.opaci
 function highlightConnected(event,d) {
   event.stopPropagation();
   if(protagonistIds.includes(d.id)) return;
+  if(protagonistIds.length >= 5) return;
   protagonistIds.push(d.id);
   document.getElementById('search-box').value='';
   rebuildCenteredNetwork();

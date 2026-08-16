@@ -228,7 +228,7 @@ function initSearch() {
         const id = +el.dataset.id;
         protagonistId = id;
         selectedNodes.clear(); selectedNodes.add(id);
-        primaryEdges.forEach(e => { if(e.source===id)selectedNodes.add(e.target); if(e.target===id)selectedNodes.add(e.source); });
+        primaryEdges.forEach(e => { const sid=typeof e.source==='object'?e.source.id:e.source; const tid=typeof e.target==='object'?e.target.id:e.target; if(sid===id)selectedNodes.add(tid); if(tid===id)selectedNodes.add(sid); });
         box.value = nodeMap[id].name;
         results.style.display='none';
         applyFilters(); zoomToNode(id);
@@ -395,7 +395,7 @@ function highlightConnected(event,d) {
   event.stopPropagation();
   if(!protagonistId||protagonistId===d.id) {
     protagonistId=d.id; selectedNodes.clear(); selectedNodes.add(d.id);
-    primaryEdges.forEach(e=>{ if(e.source===d.id)selectedNodes.add(e.target); if(e.target===d.id)selectedNodes.add(e.source); });
+    primaryEdges.forEach(e=>{ const sid=typeof e.source==='object'?e.source.id:e.source; const tid=typeof e.target==='object'?e.target.id:e.target; if(sid===d.id)selectedNodes.add(tid); if(tid===d.id)selectedNodes.add(sid); });
     document.getElementById('search-box').value=d.name; applyFilters(); zoomToNode(d.id); return;
   }
   const path = findShortestPath(protagonistId,d.id);

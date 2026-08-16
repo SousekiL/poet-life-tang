@@ -20,11 +20,15 @@ body { background: #0d1117; color: #e6edf3; font-family: 'PingFang SC','Microsof
 #search-box:focus { border-color: #58a6ff; }
 #search-box::placeholder { color: #484f58; }
 #search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #484f58; font-size: 14px; pointer-events: none; }
-#search-results { position: absolute; top: 100%; left: 0; right: 0; background: #1c2128; border: 1px solid #30363d; border-top: none; border-radius: 0 0 6px 6px; max-height: 200px; overflow-y: auto; z-index: 100; display: none; }
+#search-results { position: absolute; top: 42px; left: 0; right: 0; background: #1c2128; border: 1px solid #30363d; border-radius: 6px; max-height: 200px; overflow-y: auto; z-index: 100; display: none; }
 #search-results .item { padding: 8px 14px; cursor: pointer; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
 #search-results .item:hover { background: #21262d; }
 #search-results .item .name { color: #e6edf3; }
 #search-results .item .meta { color: #8b949e; font-size: 11px; }
+#search-selection { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; min-height: 0; }
+.person-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid #6e5a18; border-radius: 999px; background: #3b2e092e; color: #f0d67a; font-size: 12px; }
+.person-chip button { border: 0; background: transparent; color: #b9a45c; cursor: pointer; font-size: 12px; line-height: 1; }
+.person-chip button:hover { color: #fff1a8; }
 
 .filter-group { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 12px; }
 .filter-group h3 { font-size: 12px; font-weight: 600; color: #8b949e; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -91,6 +95,7 @@ svg { width: 100%; height: 100%; }
 #controls button.active { background: #1f6feb; border-color: #58a6ff; }
 
 .select-rect { fill: rgba(88,166,255,0.1); stroke: #58a6ff; stroke-width: 1; stroke-dasharray: 4 2; pointer-events: none; vector-effect: non-scaling-stroke; }
+.label-leader { fill: none; stroke: #8b949e; stroke-width: 0.75; stroke-opacity: 0.75; pointer-events: none; vector-effect: non-scaling-stroke; }
 </style>
 </head>
 <body>
@@ -99,9 +104,10 @@ svg { width: 100%; height: 100%; }
     <h1>唐代人物关系网络</h1>
     <div id="search-wrap">
       <span id="search-icon">🔍</span>
-      <input type="text" id="search-box" placeholder="输入姓名或拼音，选择人物作为主人公..." autocomplete="off">
+      <input type="text" id="search-box" placeholder="输入姓名，可连续选择一至两位人物..." autocomplete="off">
       <div id="search-results"></div>
-      <div class="hint-text">选中后该人物高亮显示（金色边框）；点击图中其他人物可查看两者之间的关联路径</div>
+      <div id="search-selection" aria-live="polite"></div>
+      <div class="hint-text">最多选择两位中心人物；页面会合并显示两人的直接关系网络与两人之间的关联路径。</div>
     </div>
     <div class="filter-group">
       <h3>关系类型 Relation</h3>
@@ -119,14 +125,14 @@ svg { width: 100%; height: 100%; }
       <h3>姓名标签 Label density</h3>
       <div class="label-density-head"><span>按当前视野内的连接度排序</span><output id="label-density-output" for="label-density">核心</output></div>
       <input id="label-density" type="range" min="0" max="5" step="1" value="2" aria-label="姓名标签显示密度">
-      <div class="label-density-scale" aria-hidden="true"><span>不显示</span><span>更多</span><span>全部</span></div>
+      <div class="label-density-scale" aria-hidden="true"><span>不显示</span><span>更多</span><span>尽可能多</span></div>
       <div class="hint-text">放大或框选后会按当前区域重新排序；同一档会自动显示该区域最重要的人物。</div>
     </div>
     <div class="filter-group guide">
       <h3>操作指南</h3>
-      <p><strong>搜索人物</strong>：选择主人公；再点击其他人物查看关联路径。</p>
+      <p><strong>搜索人物</strong>：可连续选择一至两位中心人物；图中会合并显示直接关系与两人之间的路径。</p>
       <p><strong>浏览网络</strong>：滚轮缩放，拖动画布平移；姓名字号始终保持不变。</p>
-      <p><strong>框选放大</strong>：点击右下角 ⬚，再在图中拖出区域；只改变视窗，不重排节点或连线。</p>
+      <p><strong>框选放大</strong>：点击右下角 ⬚，再在图中拖出区域；只改变视窗，节点仅轻微增大，不重排节点或连线。</p>
       <p><strong>恢复总图</strong>：点击 ⟲ 返回网页初次打开时的完整网络。</p>
     </div>
     <div id="stats">显示: <span id="stat-visible">0</span> 人 / <span id="stat-edges">0</span> 条关系<br>总计: <span id="stat-total">0</span> 人</div>
@@ -202,12 +208,18 @@ function getEra(n) {
 let allNodes=[], allEdges=[], nodeMap={};
 let filters = {rel_type:new Set(), gender:new Set()};
 let selectedNodes = new Set();
-let protagonistId = null;
-let simulation, svg, background, g, linkG, nodeG, labelG, zoom;
+let protagonistIds = [];
+let simulation, svg, background, g, linkG, nodeG, labelLeaderG, labelG, zoom;
 let labelDensity = 2;
+let labelPlacements = new Map();
 let initialTransform = d3.zoomIdentity;
 let initialNodePositions = new Map();
 let initialLayoutReady = false;
+
+const LABEL_FONT_SIZE = 15;
+const LABEL_LINE_HEIGHT = 19;
+const labelMeasureContext = document.createElement('canvas').getContext('2d');
+labelMeasureContext.font = `700 ${LABEL_FONT_SIZE}px "Songti SC", "PingFang SC", serif`;
 
 const LABEL_LEVELS = [
   {label:'不显示', ratio:0, min:0, max:0},
@@ -215,7 +227,7 @@ const LABEL_LEVELS = [
   {label:'核心', ratio:0.04, min:8, max:18},
   {label:'适中', ratio:0.10, min:14, max:42},
   {label:'较多', ratio:0.25, min:24, max:120},
-  {label:'全部', ratio:1, min:0, max:Infinity},
+  {label:'尽可能多', ratio:1, min:0, max:Infinity},
 ];
 
 const FILTER_DEFS = {
@@ -265,20 +277,19 @@ function initSearch() {
   const results = document.getElementById('search-results');
   box.addEventListener('input', () => {
     const q = box.value.trim().toLowerCase();
-    if(!q) { results.style.display='none'; resetNetworkView(); return; }
-    const matches = allNodes.filter(n => n.name.includes(q)||(n.name_rm||'').toLowerCase().includes(q)).slice(0,20);
+    if(!q || protagonistIds.length>=2) { results.style.display='none'; return; }
+    const matches = allNodes.filter(n =>
+      !protagonistIds.includes(n.id) &&
+      (n.name.includes(q)||(n.name_rm||'').toLowerCase().includes(q))
+    ).slice(0,20);
     if(!matches.length) { results.style.display='none'; return; }
     results.innerHTML = matches.map(n => `<div class="item" data-id="${n.id}"><span class="name">${n.name}</span><span class="meta">${n.name_rm||''} · ${n.era} · 度${n.degree}</span></div>`).join('');
     results.style.display='block';
     results.querySelectorAll('.item').forEach(el => {
       el.addEventListener('click', () => {
-        const id = +el.dataset.id;
-        protagonistId = id;
-        selectedNodes.clear(); selectedNodes.add(id);
-        primaryEdges.forEach(e => { const [sid,tid]=edgeIds(e); if(sid===id)selectedNodes.add(tid); if(tid===id)selectedNodes.add(sid); });
-        box.value = nodeMap[id].name;
+        selectCenterPerson(+el.dataset.id);
+        box.value = '';
         results.style.display='none';
-        applyFilters(); zoomToNode(id);
       });
     });
   });
@@ -286,11 +297,56 @@ function initSearch() {
   document.addEventListener('click', e => { if(!e.target.closest('#search-wrap')) results.style.display='none'; });
 }
 
-function zoomToNode(id) {
-  const n = allNodes.find(x => x.id===id);
-  if(!n||!n.x) return;
-  const w = document.getElementById('canvas-wrap').clientWidth, h = document.getElementById('canvas-wrap').clientHeight;
-  svg.transition().duration(750).call(zoom.transform, d3.zoomIdentity.translate(w/2,h/2).scale(3).translate(-n.x,-n.y));
+function renderSearchSelection() {
+  const selection = document.getElementById('search-selection');
+  selection.innerHTML = protagonistIds.map(id =>
+    `<span class="person-chip" data-id="${id}">${personLabel(nodeMap[id])}<button type="button" aria-label="移除${personLabel(nodeMap[id])}">✕</button></span>`
+  ).join('');
+  selection.querySelectorAll('.person-chip button').forEach(button=>{
+    button.addEventListener('click',()=>removeCenterPerson(+button.parentElement.dataset.id));
+  });
+  const box = document.getElementById('search-box');
+  box.placeholder = protagonistIds.length>=2 ? '已选择两位人物，可先移除后更换' : '输入姓名，可连续选择一至两位人物...';
+}
+
+function selectCenterPerson(id) {
+  if(protagonistIds.includes(id)) return;
+  if(protagonistIds.length>=2) return;
+  protagonistIds.push(id);
+  rebuildCenteredNetwork();
+}
+
+function removeCenterPerson(id) {
+  protagonistIds = protagonistIds.filter(centerId=>centerId!==id);
+  if(protagonistIds.length) rebuildCenteredNetwork();
+  else {
+    selectedNodes.clear();
+    renderSearchSelection();
+    applyFilters();
+    fitNetworkToView(500);
+  }
+}
+
+function rebuildCenteredNetwork() {
+  selectedNodes.clear();
+  protagonistIds.forEach(id=>selectedNodes.add(id));
+  primaryEdges.forEach(edge=>{
+    const [sourceId,targetId] = edgeIds(edge);
+    if(protagonistIds.includes(sourceId)) selectedNodes.add(targetId);
+    if(protagonistIds.includes(targetId)) selectedNodes.add(sourceId);
+  });
+  if(protagonistIds.length===2) {
+    const path = findShortestPath(protagonistIds[0],protagonistIds[1]);
+    if(path) path.forEach(id=>selectedNodes.add(id));
+  }
+  renderSearchSelection();
+  applyFilters();
+  zoomToCenters();
+}
+
+function zoomToCenters() {
+  const nodes = getVisibleNodes().filter(node=>Number.isFinite(node.x)&&Number.isFinite(node.y));
+  fitNodesToView(nodes,750,110,protagonistIds.length===1?3:2.6);
 }
 
 function initCombo(key) {
@@ -324,7 +380,7 @@ function initCombo(key) {
 }
 
 function selectAll(key) { getFilterValues(key).forEach(v=>filters[key].add(v)); const w=document.getElementById('combo-'+key); const i=w.querySelector('.combo-input'); if(i)i.value=''; const d=w.querySelector('.combo-dropdown'); if(d)d.style.display='none'; document.getElementById('tags-'+key).innerHTML='<span style="font-size:11px;color:#484f58">全部已选</span>'; applyFilters(); }
-function clearAll(key) { filters[key].clear(); selectedNodes.clear(); protagonistId=null; document.getElementById('search-box').value=''; const w=document.getElementById('combo-'+key); const d=w.querySelector('.combo-dropdown'); if(d)d.style.display='none'; document.getElementById('tags-'+key).innerHTML=''; applyFilters(); }
+function clearAll(key) { filters[key].clear(); selectedNodes.clear(); protagonistIds=[]; renderSearchSelection(); document.getElementById('search-box').value=''; const w=document.getElementById('combo-'+key); const d=w.querySelector('.combo-dropdown'); if(d)d.style.display='none'; document.getElementById('tags-'+key).innerHTML=''; applyFilters(); }
 
 function getVisibleNodes() {
   return allNodes.filter(n => {
@@ -357,36 +413,70 @@ function getNodesInViewport(nodes) {
   });
 }
 
-function getLabeledNodes(visibleNodes) {
+function labelCandidatePositions(radius) {
+  const positions = [];
+  [8,20,34].forEach(gap=>{
+    const offset = radius+gap;
+    positions.push(
+      {dx:0,dy:-offset,anchor:'middle'},
+      {dx:offset,dy:-offset*0.62,anchor:'start'},
+      {dx:offset,dy:5,anchor:'start'},
+      {dx:offset,dy:offset+LABEL_FONT_SIZE,anchor:'start'},
+      {dx:0,dy:offset+LABEL_FONT_SIZE,anchor:'middle'},
+      {dx:-offset,dy:offset+LABEL_FONT_SIZE,anchor:'end'},
+      {dx:-offset,dy:5,anchor:'end'},
+      {dx:-offset,dy:-offset*0.62,anchor:'end'}
+    );
+  });
+  return positions;
+}
+
+function labelBox(x,y,width,anchor) {
+  const left = anchor==='start' ? x : anchor==='end' ? x-width : x-width/2;
+  return {left:left-4,right:left+width+4,top:y-LABEL_FONT_SIZE-3,bottom:y+5};
+}
+
+function boxesOverlap(a,b) {
+  return a.left<b.right && a.right>b.left && a.top<b.bottom && a.bottom>b.top;
+}
+
+function computeLabelPlacements(visibleNodes) {
   const level = LABEL_LEVELS[labelDensity];
+  labelPlacements = new Map();
   if(!level || labelDensity === 0) return [];
   const candidates = getNodesInViewport(visibleNodes)
     .sort((a,b) => b.degree-a.degree || a.id-b.id);
-  if(labelDensity === LABEL_LEVELS.length-1) return candidates;
   const targetCount = Math.min(
     candidates.length,
-    level.max,
+    labelDensity===LABEL_LEVELS.length-1 ? candidates.length : level.max,
     Math.max(level.min, Math.ceil(candidates.length*level.ratio))
   );
-  const protagonist = candidates.find(node => node.id === protagonistId);
-  const ordered = protagonist
-    ? [protagonist,...candidates.filter(node=>node.id!==protagonist.id)]
-    : candidates;
+  const centers = candidates.filter(node=>protagonistIds.includes(node.id));
+  const ordered = [...centers,...candidates.filter(node=>!protagonistIds.includes(node.id))];
   const transform = d3.zoomTransform(svg.node());
+  const wrap = document.getElementById('canvas-wrap');
   const boxes = [];
   const result = [];
   for(const node of ordered) {
-    const x = transform.applyX(node.x);
-    const y = transform.applyY(node.y)-nodeRadius(node)*transform.k-7;
-    const width = Math.max(personLabel(node).length,2)*15;
-    const box = {left:x-width/2-3,right:x+width/2+3,top:y-18,bottom:y+4};
-    const overlaps = boxes.some(existing =>
-      box.left<existing.right && box.right>existing.left &&
-      box.top<existing.bottom && box.bottom>existing.top
-    );
-    if(!overlaps || node.id===protagonistId) {
+    const nodeX = transform.applyX(node.x);
+    const nodeY = transform.applyY(node.y);
+    const radius = screenNodeRadius(node,transform.k);
+    const width = Math.ceil(labelMeasureContext.measureText(personLabel(node)).width);
+    let placement = null;
+    for(const candidate of labelCandidatePositions(radius)) {
+      const x = nodeX+candidate.dx;
+      const y = nodeY+candidate.dy;
+      const box = labelBox(x,y,width,candidate.anchor);
+      const inside = box.left>=8 && box.right<=wrap.clientWidth-8 && box.top>=8 && box.bottom<=wrap.clientHeight-8;
+      if(inside && !boxes.some(existing=>boxesOverlap(box,existing))) {
+        placement = {...candidate,box};
+        break;
+      }
+    }
+    if(placement) {
+      labelPlacements.set(node.id,placement);
+      boxes.push(placement.box);
       result.push(node);
-      boxes.push(box);
     }
     if(result.length>=targetCount) break;
   }
@@ -394,43 +484,67 @@ function getLabeledNodes(visibleNodes) {
 }
 
 function renderLabels(visibleNodes) {
-  const labels = labelG.selectAll('text.node-label').data(getLabeledNodes(visibleNodes), d=>d.id);
+  const labeledNodes = computeLabelPlacements(visibleNodes);
+  const labels = labelG.selectAll('text.node-label').data(labeledNodes, d=>d.id);
   labels.exit().remove();
-  labels.enter().append('text').attr('class','node-label').attr('text-anchor','middle').attr('aria-hidden','true')
-    .merge(labels).text(personLabel);
+  labels.enter().append('text').attr('class','node-label').attr('aria-hidden','true')
+    .merge(labels)
+    .attr('text-anchor',d=>labelPlacements.get(d.id).anchor)
+    .text(personLabel);
+  const leaders = labelLeaderG.selectAll('path.label-leader').data(labeledNodes,d=>d.id);
+  leaders.exit().remove();
+  leaders.enter().append('path').attr('class','label-leader').merge(leaders);
   updateLabelScale(d3.zoomTransform(svg.node()).k);
+  document.getElementById('label-density-output').textContent = `${LABEL_LEVELS[labelDensity].label} · ${labeledNodes.length}人`;
 }
 
 function updateLabelScale(scale) {
-  if(!labelG) return;
+  if(!labelG || !labelLeaderG) return;
   labelG.selectAll('text.node-label')
-    .attr('dy', d => -nodeRadius(d)-7/scale)
-    .style('font-size',`${15/scale}px`)
+    .style('font-size',`${LABEL_FONT_SIZE/scale}px`)
     .style('stroke-width',`${3.5/scale}px`);
+  positionLabels(scale);
+}
+
+function positionLabels(scale) {
+  labelG.selectAll('text.node-label')
+    .attr('x',d=>d.x+labelPlacements.get(d.id).dx/scale)
+    .attr('y',d=>d.y+labelPlacements.get(d.id).dy/scale);
+  labelLeaderG.selectAll('path.label-leader').attr('d',d=>{
+    const placement = labelPlacements.get(d.id);
+    const distance = Math.hypot(placement.dx,placement.dy)||1;
+    const radius = screenNodeRadius(d,scale);
+    const startX = d.x+(placement.dx/distance)*(radius+2)/scale;
+    const startY = d.y+(placement.dy/distance)*(radius+2)/scale;
+    const endX = d.x+placement.dx*0.72/scale;
+    const endY = d.y+placement.dy*0.72/scale;
+    return `M${startX},${startY} L${endX},${endY}`;
+  });
 }
 
 function applyFilters() {
   const visibleNodes = getVisibleNodes();
   const visibleIds = new Set(visibleNodes.map(n=>n.id));
   const visibleEdges = getVisibleEdges(visibleIds);
+  const scale = d3.zoomTransform(svg.node()).k;
 
   const nodes = nodeG.selectAll('circle').data(visibleNodes, d=>d.id);
   nodes.exit().transition().duration(300).attr('r',0).remove();
-  const nodesEnter = nodes.enter().append('circle').attr('r',0).on('mouseover',showTooltip).on('mouseout',hideTooltip).on('click',highlightConnected).call(d3.drag().on('start',dragStarted).on('drag',dragged).on('end',dragEnded));
+  const nodesEnter = nodes.enter().append('circle').attr('r',0).attr('vector-effect','non-scaling-stroke').on('mouseover',showTooltip).on('mouseout',hideTooltip).on('click',highlightConnected).call(d3.drag().on('start',dragStarted).on('drag',dragged).on('end',dragEnded));
   nodes.merge(nodesEnter).transition().duration(300)
-    .attr('r', d=>nodeRadius(d))
+    .attr('r', d=>screenNodeRadius(d,scale)/scale)
     .attr('fill', d=>GENDER_COLORS[d.gender]||'#484f58')
     .attr('opacity', d => {
       if(selectedNodes.size&&!selectedNodes.has(d.id)) return 0.08;
-      if(protagonistId&&d.id===protagonistId) return 1;
+      if(protagonistIds.includes(d.id)) return 1;
       return d.role==='core'?0.95:0.5;
     })
-    .attr('stroke', d => { if(protagonistId&&d.id===protagonistId) return '#ffd700'; return d.role==='core'?'#21262d':'transparent'; })
-    .attr('stroke-width', d => { if(protagonistId&&d.id===protagonistId) return 3; return d.role==='core'?1:0; });
+    .attr('stroke', d => protagonistIds.includes(d.id)?'#ffd700':d.role==='core'?'#21262d':'transparent')
+    .attr('stroke-width', d => protagonistIds.includes(d.id)?3:d.role==='core'?1:0);
 
   const edges = linkG.selectAll('line').data(visibleEdges, d=>{ const [sourceId,targetId]=edgeIds(d); return `${sourceId}-${targetId}-${d.rel_type}`; });
   edges.exit().transition().duration(300).attr('opacity',0).remove();
-  const edgesEnter = edges.enter().append('line').attr('opacity',0).on('mouseover',showEdgeTooltip).on('mouseout',hideEdgeTooltip);
+  const edgesEnter = edges.enter().append('line').attr('opacity',0).attr('vector-effect','non-scaling-stroke').on('mouseover',showEdgeTooltip).on('mouseout',hideEdgeTooltip);
   edges.merge(edgesEnter).transition().duration(300)
     .attr('stroke', d=>REL_COLORS[d.rel_type]||'#30363d')
     .attr('stroke-width', d => {
@@ -448,6 +562,16 @@ function applyFilters() {
 }
 
 function nodeRadius(d) { const m=Math.max(...allNodes.map(n=>n.degree),1); return 3+18*(d.degree/m); }
+function screenNodeRadius(d,scale) {
+  const baseline = initialLayoutReady ? initialTransform.k : scale;
+  const ratio = Math.max(scale/Math.max(baseline,0.01),0.01);
+  const gain = Math.max(0.9,Math.min(1.28,1+0.12*Math.log2(ratio)));
+  return nodeRadius(d)*baseline*gain;
+}
+function updateGraphMarkScale(scale) {
+  if(!nodeG) return;
+  nodeG.selectAll('circle').attr('r',d=>screenNodeRadius(d,scale)/scale);
+}
 function updateStats() { const v=getVisibleNodes(); const vi=new Set(v.map(n=>n.id)); const ve=getVisibleEdges(vi); document.getElementById('stat-visible').textContent=v.length; document.getElementById('stat-edges').textContent=ve.length; document.getElementById('stat-total').textContent=allNodes.length; }
 
 function initGraph() {
@@ -455,16 +579,17 @@ function initGraph() {
   svg = d3.select('#graph').attr('width',w).attr('height',h);
   zoom = d3.zoom().scaleExtent([0.1,8]).on('zoom', e=>{
     g.attr('transform',e.transform);
+    updateGraphMarkScale(e.transform.k);
     renderLabels(getVisibleNodes());
   });
   svg.call(zoom);
   background = svg.append('rect').attr('class','graph-background').attr('width',w).attr('height',h).attr('fill','transparent')
     .on('click', event=>{ if(!selectMode && !suppressBackgroundReset) resetNetworkView(); suppressBackgroundReset=false; });
-  g = svg.append('g'); linkG = g.append('g'); nodeG = g.append('g'); labelG = g.append('g');
+  g = svg.append('g'); linkG = g.append('g'); nodeG = g.append('g'); labelLeaderG = g.append('g'); labelG = g.append('g');
 
   const visibleNodes = getVisibleNodes(); const visibleIds = new Set(visibleNodes.map(n=>n.id)); const visibleEdges = getVisibleEdges(visibleIds);
-  linkG.selectAll('line').data(visibleEdges).join('line').attr('stroke',d=>REL_COLORS[d.rel_type]||'#30363d').attr('stroke-width',0.8).attr('opacity',0.45).on('mouseover',showEdgeTooltip).on('mouseout',hideEdgeTooltip);
-  nodeG.selectAll('circle').data(visibleNodes).join('circle').attr('r',d=>nodeRadius(d)).attr('fill',d=>GENDER_COLORS[d.gender]||'#484f58').attr('stroke',d=>d.role==='core'?'#21262d':'transparent').attr('stroke-width',d=>d.role==='core'?1:0).attr('opacity',d=>d.role==='core'?0.95:0.5).on('mouseover',showTooltip).on('mouseout',hideTooltip).on('click',highlightConnected).call(d3.drag().on('start',dragStarted).on('drag',dragged).on('end',dragEnded));
+  linkG.selectAll('line').data(visibleEdges).join('line').attr('vector-effect','non-scaling-stroke').attr('stroke',d=>REL_COLORS[d.rel_type]||'#30363d').attr('stroke-width',0.8).attr('opacity',0.45).on('mouseover',showEdgeTooltip).on('mouseout',hideEdgeTooltip);
+  nodeG.selectAll('circle').data(visibleNodes).join('circle').attr('vector-effect','non-scaling-stroke').attr('r',d=>nodeRadius(d)).attr('fill',d=>GENDER_COLORS[d.gender]||'#484f58').attr('stroke',d=>d.role==='core'?'#21262d':'transparent').attr('stroke-width',d=>d.role==='core'?1:0).attr('opacity',d=>d.role==='core'?0.95:0.5).on('mouseover',showTooltip).on('mouseout',hideTooltip).on('click',highlightConnected).call(d3.drag().on('start',dragStarted).on('drag',dragged).on('end',dragEnded));
 
   renderLabels(visibleNodes);
 
@@ -503,22 +628,27 @@ function initGraph() {
 
 function captureInitialLayout() {
   initialNodePositions = new Map(allNodes.map(node => [node.id,{x:node.x,y:node.y}]));
-  initialLayoutReady = true;
   fitNetworkToView(0);
   initialTransform = d3.zoomTransform(svg.node());
+  initialLayoutReady = true;
+  updateGraphMarkScale(initialTransform.k);
   renderLabels(getVisibleNodes());
 }
 
 function fitNetworkToView(duration=500) {
   const nodes = getVisibleNodes().filter(node => Number.isFinite(node.x) && Number.isFinite(node.y));
+  fitNodesToView(nodes,duration,96,1.5);
+}
+
+function fitNodesToView(nodes,duration=500,padding=96,maxScale=1.5) {
   if(!nodes.length) { svg.interrupt().call(zoom.transform,d3.zoomIdentity); return; }
   const wrap = document.getElementById('canvas-wrap');
-  const width = wrap.clientWidth, height = wrap.clientHeight, padding = 96;
+  const width = wrap.clientWidth, height = wrap.clientHeight;
   const x0 = d3.min(nodes, node => node.x-nodeRadius(node));
   const x1 = d3.max(nodes, node => node.x+nodeRadius(node));
   const y0 = d3.min(nodes, node => node.y-nodeRadius(node));
   const y1 = d3.max(nodes, node => node.y+nodeRadius(node));
-  const scale = Math.min((width-padding*2)/Math.max(x1-x0,1), (height-padding*2)/Math.max(y1-y0,1), 1.5);
+  const scale = Math.min((width-padding*2)/Math.max(x1-x0,1), (height-padding*2)/Math.max(y1-y0,1), maxScale);
   const transform = d3.zoomIdentity.translate(width/2,height/2).scale(scale).translate(-(x0+x1)/2,-(y0+y1)/2);
   const target = duration ? svg.interrupt().transition().duration(duration) : svg.interrupt();
   target.call(zoom.transform,transform);
@@ -526,9 +656,10 @@ function fitNetworkToView(duration=500) {
 
 function resetNetworkView() {
   selectedNodes.clear();
-  protagonistId = null;
+  protagonistIds = [];
   document.getElementById('search-box').value = '';
   document.getElementById('search-results').style.display = 'none';
+  renderSearchSelection();
   Object.keys(filters).forEach(key=>{
     filters[key] = new Set(getFilterValues(key));
     const input = document.querySelector(`#combo-${key} .combo-input`);
@@ -554,7 +685,7 @@ function resetNetworkView() {
   svg.interrupt().transition().duration(500).call(zoom.transform,initialTransform);
 }
 
-function tick() { linkG.selectAll('line').attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y); nodeG.selectAll('circle').attr('cx',d=>d.x).attr('cy',d=>d.y); labelG.selectAll('text.node-label').attr('x',d=>d.x).attr('y',d=>d.y); }
+function tick() { linkG.selectAll('line').attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y); nodeG.selectAll('circle').attr('cx',d=>d.x).attr('cy',d=>d.y); if(svg&&labelG)positionLabels(d3.zoomTransform(svg.node()).k); }
 
 function showTooltip(event,d) {
   const tip = document.getElementById('tooltip');
@@ -586,15 +717,11 @@ function hideEdgeTooltip() { document.getElementById('edge-tooltip').style.opaci
 
 function highlightConnected(event,d) {
   event.stopPropagation();
-  if(!protagonistId||protagonistId===d.id) {
-    protagonistId=d.id; selectedNodes.clear(); selectedNodes.add(d.id);
-    primaryEdges.forEach(e=>{ const [sourceId,targetId]=edgeIds(e); if(sourceId===d.id)selectedNodes.add(targetId); if(targetId===d.id)selectedNodes.add(sourceId); });
-    document.getElementById('search-box').value=d.name; applyFilters(); zoomToNode(d.id); return;
-  }
-  const path = findShortestPath(protagonistId,d.id);
-  if(path) { selectedNodes.clear(); path.forEach(id=>selectedNodes.add(id)); }
-  else { selectedNodes.clear(); selectedNodes.add(protagonistId); selectedNodes.add(d.id); }
-  applyFilters();
+  if(protagonistIds.includes(d.id)) return;
+  if(protagonistIds.length<2) protagonistIds.push(d.id);
+  else protagonistIds[1]=d.id;
+  document.getElementById('search-box').value='';
+  rebuildCenteredNetwork();
 }
 
 function findShortestPath(startId,endId) {

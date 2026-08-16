@@ -66,12 +66,39 @@ class NetworkInteractionTest(unittest.TestCase):
 
     def set_label_density(self, level):
         self.page.locator("#label-density").fill(str(level))
-        self.page.wait_for_timeout(100)
+        self.page.wait_for_timeout(180)
 
     def select_person(self, name):
         self.page.locator("#search-box").fill(name)
         self.page.locator("#search-results .item").first.click()
         self.page.wait_for_timeout(850)
+
+    def label_overlap_count(self):
+        return self.page.evaluate(
+            """
+            () => {
+              const labels = [...document.querySelectorAll('#graph .node-label')]
+                .map(label => label.getBoundingClientRect());
+              let overlaps = 0;
+              for (let i = 0; i < labels.length; i += 1) {
+                for (let j = i + 1; j < labels.length; j += 1) {
+                  const a = labels[i], b = labels[j];
+                  if (a.left < b.right && a.right > b.left &&
+                      a.top < b.bottom && a.bottom > b.top) overlaps += 1;
+                }
+              }
+              return overlaps;
+            }
+            """
+        )
+
+    def largest_node_diameter(self):
+        return self.page.evaluate(
+            """
+            () => Math.max(...[...document.querySelectorAll('#graph circle')]
+              .map(circle => circle.getBoundingClientRect().width))
+            """
+        )
 
     def assert_all_nodes_in_view(self):
         outside = self.page.evaluate(
@@ -117,18 +144,25 @@ class NetworkInteractionTest(unittest.TestCase):
             self.page.locator("#legend").inner_text().count("女性"), 1
         )
 
-        self.set_label_density(0)
-        self.assertEqual(self.stats()["labels"], 0)
-        self.set_label_density(1)
-        sparse_count = self.stats()["labels"]
-        self.assertGreater(sparse_count, 0)
-        self.set_label_density(4)
-        self.assertGreater(self.stats()["labels"], sparse_count)
+        label_counts = []
+        for level in range(6):
+            self.set_label_density(level)
+            label_counts.append(self.stats()["labels"])
+            self.assertEqual(self.label_overlap_count(), 0)
+        self.assertEqual(label_counts[0], 0)
+        self.assertTrue(
+            all(after > before for before, after in zip(label_counts, label_counts[1:])),
+            label_counts,
+        )
+        self.assertEqual(
+            self.page.locator("#graph .label-leader").count(), label_counts[-1]
+        )
 
         self.set_label_density(2)
         before_zoom_label_height = self.page.locator(
             "#graph .node-label"
         ).first.bounding_box()["height"]
+        before_zoom_node_diameter = self.largest_node_diameter()
         self.assertGreaterEqual(before_zoom_label_height, 14)
 
         self.page.locator("#select-mode").click()
@@ -154,6 +188,10 @@ class NetworkInteractionTest(unittest.TestCase):
         self.assertAlmostEqual(
             after_zoom_label_height, before_zoom_label_height, delta=1.5
         )
+        after_zoom_node_diameter = self.largest_node_diameter()
+        self.assertLessEqual(
+            after_zoom_node_diameter, before_zoom_node_diameter * 1.3
+        )
         visible_labels = self.page.evaluate(
             """
             () => {
@@ -169,12 +207,29 @@ class NetworkInteractionTest(unittest.TestCase):
         self.assertTrue(visible_labels)
 
         self.select_person("杜甫")
+        self.assertEqual(self.page.locator("#search-selection .person-chip").count(), 1)
+        one_center_nodes = self.stats()["nodes"]
+        self.select_person("李白")
         searched = self.stats()
         self.assertGreater(searched["nodes"], 1)
         self.assertGreater(searched["edges"], 0)
-        self.assertIn(
-            "杜甫", self.page.locator("#graph .node-label").all_text_contents()
+        self.assertGreaterEqual(searched["nodes"], one_center_nodes)
+        self.assertEqual(self.page.locator("#search-selection .person-chip").count(), 2)
+        self.assertEqual(
+            set(self.page.locator("#search-selection .person-chip").all_text_contents()),
+            {"杜甫✕", "李白✕"},
         )
+        label_texts = self.page.locator("#graph .node-label").all_text_contents()
+        self.assertIn("杜甫", label_texts)
+        self.assertIn("李白", label_texts)
+        self.assertEqual(self.label_overlap_count(), 0)
+
+        self.set_label_density(4)
+        self.assertGreater(self.stats()["labels"], 8)
+        self.assertEqual(self.label_overlap_count(), 0)
+        screenshot = os.environ.get("NETWORK_SCREENSHOT")
+        if screenshot:
+            self.page.screenshot(path=screenshot, full_page=True)
 
         self.page.locator("#zoom-reset").click()
         self.page.wait_for_timeout(750)
@@ -189,9 +244,6 @@ class NetworkInteractionTest(unittest.TestCase):
         self.assertEqual(self.node_positions(), initial_positions)
         self.assert_all_nodes_in_view()
 
-        screenshot = os.environ.get("NETWORK_SCREENSHOT")
-        if screenshot:
-            self.page.screenshot(path=screenshot, full_page=True)
         self.assertEqual(self.console_errors, [])
 
 

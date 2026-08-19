@@ -1,7 +1,7 @@
 import csv
 from collections import defaultdict
 
-base = "/Users/sousekilyu/multica_workspaces_desktop-api.multica.ai/0ada5195-9447-453e-b7ff-2e231371ce07/4284f5ec/workdir/poet-life-tang"
+base = "."
 
 # Load Layer 1 edges (undirected pairs)
 l1_edges = set()

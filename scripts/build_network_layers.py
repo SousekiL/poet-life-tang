@@ -22,7 +22,7 @@ import sqlite3
 import os
 from collections import defaultdict
 
-DB_PATH = "/Users/sousekilyu/Documents/Data/biography_literature_CBDB_china_historical/cbdb202409.db"
+DB_PATH = os.environ.get("CBDB_PATH", "/Users/sousekilyu/Documents/Data/biography_literature_CBDB_china_historical/cbdb202409.db")
 PERSONS_CSV = "data/persons.csv"
 RELATIONSHIPS_CSV = "data/relationships.csv"
 REL_TYPES_CSV = "stage_outputs/relationship_types.csv"
